@@ -4,6 +4,7 @@ import uuid
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy import func as sql_func
 from geoalchemy2 import Geometry
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -58,6 +59,78 @@ class PasswordResetToken(Base, AsyncAttrs):
         return not self.is_used and datetime.utcnow() <= self.expires_at
 
 
+class Country(Base, AsyncAttrs):
+    __tablename__ = "countries"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), index=True)
+    code: Mapped[str] = mapped_column(String(2), index=True)
+    
+    # Relationships
+    regions: Mapped[List["Region"]] = relationship("Region", back_populates="country")
+    locations: Mapped[List["Location"]] = relationship("Location", back_populates="country_rel")
+
+
+class Region(Base, AsyncAttrs):
+    __tablename__ = "regions"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), index=True)
+    country_id: Mapped[int] = mapped_column(ForeignKey("countries.id"))
+    
+    # Relationships
+    country: Mapped[Country] = relationship("Country", back_populates="regions")
+    locations: Mapped[List["Location"]] = relationship("Location", back_populates="region")
+
+
+class Category(Base, AsyncAttrs):
+    __tablename__ = "categories"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), index=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Relationships
+    locations: Mapped[List["Location"]] = relationship("Location", back_populates="category")
+
+
+class Amenity(Base, AsyncAttrs):
+    __tablename__ = "amenities"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), index=True)
+    icon: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    
+    # Relationships
+    location_amenities: Mapped[List["LocationAmenity"]] = relationship("LocationAmenity", back_populates="amenity")
+
+
+class LocationAmenity(Base, AsyncAttrs):
+    __tablename__ = "location_amenities"
+    
+    location_id: Mapped[int] = mapped_column(ForeignKey("locations.id"), primary_key=True)
+    amenity_id: Mapped[int] = mapped_column(ForeignKey("amenities.id"), primary_key=True)
+    
+    # Relationships
+    location: Mapped["Location"] = relationship("Location", back_populates="amenities_rel")
+    amenity: Mapped[Amenity] = relationship("Amenity", back_populates="location_amenities")
+
+
+class Rating(Base, AsyncAttrs):
+    __tablename__ = "ratings"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    location_id: Mapped[int] = mapped_column(ForeignKey("locations.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    rating: Mapped[float] = mapped_column(Float, nullable=False)
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    location: Mapped["Location"] = relationship("Location", back_populates="ratings")
+    user: Mapped[User] = relationship("User")
+
+
 class Location(Base, AsyncAttrs):
     __tablename__ = "locations"
     
@@ -70,9 +143,44 @@ class Location(Base, AsyncAttrs):
     geom = Column(Geometry("POINT", srid=4326), nullable=False)
     address: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    country: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    
+    # Replace string country with relation
+    country_id: Mapped[Optional[int]] = mapped_column(ForeignKey("countries.id"), nullable=True)
+    region_id: Mapped[Optional[int]] = mapped_column(ForeignKey("regions.id"), nullable=True)
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id"), nullable=True)
+    
+    # Additional fields
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    price_min: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    price_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    popularity_score: Mapped[float] = mapped_column(Float, default=0.0)
+    
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+    
+    # Relationships
+    country_rel: Mapped[Optional[Country]] = relationship("Country", back_populates="locations")
+    region: Mapped[Optional[Region]] = relationship("Region", back_populates="locations")
+    category: Mapped[Optional[Category]] = relationship("Category", back_populates="locations")
+    amenities_rel: Mapped[List[LocationAmenity]] = relationship("LocationAmenity", back_populates="location")
+    ratings: Mapped[List[Rating]] = relationship("Rating", back_populates="location")
+    
+    @property
+    def address_short(self) -> str:
+        """Return a shortened address for display"""
+        parts = []
+        if self.city:
+            parts.append(self.city)
+        if self.country_rel and self.country_rel.name:
+            parts.append(self.country_rel.name)
+        return ", ".join(parts) if parts else self.address or ""
+    
+    @property
+    def average_rating(self) -> Optional[float]:
+        """Calculate average rating if ratings exist"""
+        if not self.ratings:
+            return None
+        return sum(r.rating for r in self.ratings) / len(self.ratings)
