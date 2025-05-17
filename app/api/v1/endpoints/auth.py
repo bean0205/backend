@@ -21,7 +21,6 @@ async def register(
     *,
     db: AsyncSession = Depends(get_db_session),
     user_in: UserCreate,
-    current_user: Optional[User] = Depends(get_current_user),
 ) -> Any:
     """
     Register a new user.
@@ -33,19 +32,6 @@ async def register(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email đã được sử dụng.",
         )
-    
-    # If trying to create an admin user, ensure the current user is an admin
-    if user_in.role == "admin":
-        if not current_user or (current_user.role != "admin" and not current_user.is_superuser):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Không đủ quyền hạn để tạo tài khoản quản trị viên.",
-            )
-    
-    # Always create normal users through public registration
-    if not current_user:
-        # Force role to be "user" for public registration
-        user_in.role = "user"
     
     # Create new user
     new_user = await user.create(db, obj_in=user_in)

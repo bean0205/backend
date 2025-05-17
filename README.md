@@ -1,77 +1,165 @@
 # William Travel Backend
 
-Backend API for William Travel application built with FastAPI, SQLAlchemy 2.x (async), and PostgreSQL with PostGIS.
+Backend API cho ứng dụng William Travel được xây dựng với FastAPI, SQLAlchemy 2.x (async), và PostgreSQL với PostGIS để hỗ trợ xử lý dữ liệu địa lý.
 
-![Python](https://img.shields.io/badge/python-v3.11+-blue.svg)
+![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104.0+-00a393.svg)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0.21+-red.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-latest-blue.svg)
 ![PostGIS](https://img.shields.io/badge/PostGIS-latest-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## Features
+## Tính năng
 
-- **FastAPI framework** with async support for high-performance API development
-- **SQLAlchemy 2.x ORM** with async capabilities for modern database interactions
-- **PostgreSQL** database with **PostGIS** extension for powerful geographical data operations
-- **Alembic** for database migrations with async support
-- **Pydantic v2** for data validation and settings management
-- **Poetry** for dependency management and packaging
-- **Automatic API documentation** with Swagger UI and ReDoc
-- **Async-first architecture** throughout the entire application
+- **FastAPI framework** với hỗ trợ async cho phát triển API hiệu suất cao
+- **SQLAlchemy 2.x ORM** với khả năng async cho tương tác cơ sở dữ liệu hiện đại
+- **PostgreSQL** với extension **PostGIS** cho các thao tác dữ liệu địa lý mạnh mẽ
+- **Alembic** cho quản lý và thực thi database migrations
+- **JWT Authentication** cho xác thực người dùng an toàn
+- **Role-based Authorization** (Admin/User) để phân quyền truy cập tài nguyên
+- **Advanced filtering & Pagination** cho API Location với nhiều tiêu chí lọc
+- **Pydantic v2** cho việc xác thực dữ liệu và quản lý cấu hình
+- **Poetry** để quản lý dependency và packaging
+- **Tài liệu API tự động** với Swagger UI và ReDoc
+- **Kiến trúc Async-first** xuyên suốt ứng dụng
 - **ASGI server**: Uvicorn (dev), Gunicorn + Uvicorn (prod)
-- **Type hints** throughout the codebase for better IDE support and code quality
+- **Type hints** trong toàn bộ mã nguồn để hỗ trợ IDE tốt hơn và nâng cao chất lượng code
 
-## Project Structure
+## Cấu trúc dự án
 
 ```
 backend/
-├── app/                      # Main application package
+├── app/                      # Thư mục ứng dụng chính
 │   ├── api/                  # API endpoints
-│   │   ├── deps.py           # Dependency injection
+│   │   ├── deps.py           # Dependency injection và xác thực
 │   │   └── v1/               # API version 1
-│   │       ├── endpoints/    # API endpoints by resource
-│   │       │   └── location.py  # Location endpoints
-│   │       └── router.py     # API router aggregation
-│   ├── core/                 # Core application components
-│   │   └── config.py         # Configuration and settings
-│   ├── crud/                 # CRUD operations by model
-│   │   └── crud_location.py  # Location CRUD operations
-│   ├── db/                   # Database related modules
+│   │       ├── endpoints/    # API endpoints theo resource
+│   │       │   ├── auth.py   # Endpoints xác thực
+│   │       │   ├── location.py  # Location endpoints
+│   │       │   └── users.py  # User management endpoints
+│   │       └── router.py     # API router tổng hợp
+│   ├── core/                 # Core components
+│   │   ├── config.py         # Configuration và settings
+│   │   └── security.py       # JWT và password hashing
+│   ├── crud/                 # CRUD operations theo model
+│   │   ├── crud_location.py  # Location CRUD operations
+│   │   └── crud_user.py      # User CRUD operations
+│   ├── db/                   # Database modules
 │   │   ├── models.py         # SQLAlchemy models
 │   │   └── session.py        # Database session management
-│   ├── schemas/              # Pydantic schemas for request/response validation
-│   │   └── location.py       # Location schemas
+│   ├── schemas/              # Pydantic schemas cho request/response
+│   │   ├── location.py       # Location schemas
+│   │   └── user.py           # User schemas
 │   ├── services/             # Business logic services
-│   └── main.py               # FastAPI application creation and configuration
-├── alembic/                  # Database migration support
+│   │   └── email_service.py  # Email services cho reset password
+│   ├── scripts/              # Scripts tiện ích
+│   │   ├── init_test_data.py # Khởi tạo dữ liệu test
+│   │   └── setup_database.py # Thiết lập cơ sở dữ liệu
+│   └── main.py               # FastAPI application
+├── alembic/                  # Database migration
 │   └── versions/             # Migration versions
-│       └── 001_initial.py    # Initial database migration
-├── tests/                    # Test directory
+│       ├── 001_initial.py    # Initial migration
+│       ├── 002_user_auth.py  # Auth migration
+│       ├── 003_user_roles.py # Roles migration
+│       └── 004_location_filtering.py # Location filter migration
+├── docs/                     # Tài liệu
+│   ├── developer_guide.md    # Hướng dẫn phát triển
+│   └── troubleshooting_migrations.md # Xử lý lỗi migrations
+├── tests/                    # Tests
+│   ├── conftest.py           # Test fixtures
 │   └── api/                  # API tests
 │       └── v1/               # API v1 tests
-│           └── test_location.py  # Location endpoint tests
+│           ├── test_auth.py      # Auth tests
+│           ├── test_location.py  # Location tests
+│           ├── test_roles.py     # Roles tests
+│           └── test_location_filtering.py # Filter tests
 ├── .env                      # Environment variables
-├── .gitignore                # Git ignore file
 ├── alembic.ini               # Alembic configuration
 ├── pyproject.toml            # Poetry project definition
-└── poetry.lock               # Poetry lock file with exact versions
+├── poetry.lock               # Poetry lock file
+├── README.md                 # Tài liệu tổng quan dự án
+└── setup_travel_app.sh       # Script thiết lập tự động
+```
+│       ├── 003_user_roles.py # Roles migration
+│       └── 004_location_filtering.py # Location filter migration
+├── tests/                    # Tests
+│   ├── conftest.py           # Test fixtures
+│   └── api/                  # API tests
+│       └── v1/               # API v1 tests
+│           ├── test_auth.py      # Auth tests
+│           ├── test_location.py  # Location tests
+│           ├── test_roles.py     # Roles tests
+│           └── test_location_filtering.py # Filter tests
+├── .env                      # Environment variables
+├── alembic.ini               # Alembic configuration
+├── pyproject.toml            # Poetry project definition
+└── poetry.lock               # Poetry lock file
 ```
 
-## Prerequisites
+## Môi trường yêu cầu
 
-- **Python 3.11+**
-- **PostgreSQL** with **PostGIS** extension
-- **Poetry** for dependency management
-- Optional: Docker for containerized deployment
+- **Python 3.12+**
+- **PostgreSQL** với extension **PostGIS**
+- **Poetry** để quản lý dependencies
+- **Docker** (khuyến nghị) cho thiết lập dễ dàng
 
-## Environment Setup
+## Thiết lập môi trường
 
-### PostgreSQL with PostGIS
+### Phương pháp 1: Sử dụng script tự động (Khuyến nghị)
 
-1. Install PostgreSQL and PostGIS:
+Dự án cung cấp script tự động hóa toàn bộ quá trình thiết lập môi trường:
+
+```bash
+# Cấp quyền thực thi cho script
+chmod +x setup_travel_app.sh
+
+# Chạy script thiết lập
+./setup_travel_app.sh
+```
+
+Script sẽ thực hiện các bước sau:
+1. Khởi chạy PostgreSQL với PostGIS trong Docker
+2. Thiết lập cơ sở dữ liệu và PostGIS extension
+3. Chạy Alembic migrations
+4. Tùy chọn tạo dữ liệu mẫu
+5. Tùy chọn khởi động ứng dụng
+
+### Phương pháp 2: Thiết lập thủ công
+
+#### PostgreSQL với PostGIS
+
+##### Sử dụng Docker (Khuyến nghị)
+
+1. Tạo và chạy container PostgreSQL với PostGIS:
+   ```bash
+   docker run --name postgres-postgis \
+     -e POSTGRES_PASSWORD=postgres \
+     -e POSTGRES_USER=postgres \
+     -e POSTGRES_DB=travel \
+     -p 5432:5432 \
+     -d postgis/postgis:14-3.3
+   ```
+
+2. Kiểm tra container đã chạy:
+   ```bash
+   docker ps
+   ```
+
+3. Tạo extension PostGIS trong database:
+   ```bash
+   docker exec -it postgres-postgis psql -U postgres -d travel -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+   ```
+
+4. Kiểm tra extension đã được cài đặt:
+   ```bash
+   docker exec -it postgres-postgis psql -U postgres -d travel -c "SELECT PostGIS_version();"
+   ```
+
+##### Cài đặt trực tiếp trên máy (Tùy chọn)
+
+1. Cài đặt PostgreSQL và PostGIS:
    
-   **macOS (using Homebrew):**
+   **macOS (sử dụng Homebrew):**
    ```bash
    brew install postgresql
    brew install postgis
@@ -80,10 +168,10 @@ backend/
    **Ubuntu/Debian:**
    ```bash
    sudo apt update
-   sudo apt install postgresql postgresql-contrib postgis postgresql-14-postgis-3
+   sudo apt install postgresql postgresql-contrib postgis
    ```
 
-2. Start PostgreSQL service:
+2. Khởi động dịch vụ PostgreSQL:
    
    **macOS:**
    ```bash
@@ -95,90 +183,220 @@ backend/
    sudo systemctl start postgresql
    ```
 
-3. Create the database:
+3. Tạo database:
    ```bash
    psql -U postgres
-   ```
-   
-   ```sql
-   CREATE DATABASE william_travel_db;
-   \c william_travel_db
+   CREATE DATABASE travel;
+   \c travel
    CREATE EXTENSION postgis;
    ```
 
-### Python Environment
+### Cài đặt ứng dụng
 
-1. Install Poetry:
+1. Clone repository:
+   ```bash
+   git clone <repository_url>
+   cd william-travel/backend
+   ```
+
+2. Cài đặt Poetry (nếu chưa có):
    ```bash
    curl -sSL https://install.python-poetry.org | python3 -
    ```
 
-2. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/william-travel-backend.git
-   cd william-travel-backend
-   ```
-
-3. Install dependencies:
+3. Cài đặt dependencies với Poetry:
    ```bash
    poetry install
    ```
 
-4. Configure environment variables:
-   - Use the provided `.env` file or create one based on your settings
-   - Modify database credentials as needed
-
-## Application Setup and Running
-
-1. Activate the poetry environment:
-   ```bash
-   poetry shell
+4. Thiết lập file .env:
+   ```
+   # PostgreSQL Connection
+   POSTGRES_SERVER=localhost
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=postgres
+   POSTGRES_DB=travel
+   POSTGRES_PORT=5432
+   
+   # General settings
+   PROJECT_NAME=William Travel API
+   API_V1_STR=/api/v1
+   BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:8000","http://localhost:8080"]
+   
+   # Security
+   SECRET_KEY=your_secret_key_here
+   ACCESS_TOKEN_EXPIRE_MINUTES=11520
+   
+   # Email Settings
+   SMTP_SERVER=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=your-email@gmail.com
+   SMTP_PASSWORD=your-app-password
+   SMTP_FROM_EMAIL=your-email@gmail.com
+   
+   # Debug
+   DEBUG=True
    ```
 
-2. Apply database migrations:
+5. Thiết lập cơ sở dữ liệu:
    ```bash
-   alembic upgrade head
+   # Sử dụng script tự động để cài đặt database
+   poetry run python -m app.scripts.setup_database
    ```
 
-3. Run the development server:
+6. Chạy migrations:
    ```bash
-   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   poetry run alembic upgrade head
    ```
 
-4. Access the application:
-   - API: http://localhost:8000/api/v1/
-   - Swagger UI documentation: http://localhost:8000/docs
-   - ReDoc alternative documentation: http://localhost:8000/redoc
-   - Health check: http://localhost:8000/health
+7. Tạo dữ liệu mẫu (tùy chọn):
+   ```bash
+   poetry run python -m app.scripts.init_test_data
+   ```
 
-## API Endpoints
+8. Khởi động server phát triển:
+   ```bash
+   poetry run uvicorn app.main:app --reload
+   ```
 
-### Locations
+9. Truy cập API documentation:
+   - Swagger UI: http://localhost:8000/docs
+   - ReDoc: http://localhost:8000/redoc
 
-| Method | Endpoint | Description | Query Parameters |
-|--------|----------|-------------|-----------------|
-| `GET` | `/api/v1/locations/` | List all locations | `skip`, `limit`, `search`, `is_active` |
-| `POST` | `/api/v1/locations/` | Create a new location | - |
-| `GET` | `/api/v1/locations/{location_id}` | Get a specific location | - |
-| `PUT` | `/api/v1/locations/{location_id}` | Update a specific location | - |
-| `DELETE` | `/api/v1/locations/{location_id}` | Delete a specific location | - |
+## Phát triển
 
-### Location Schema
+### Truy cập tài liệu phát triển
 
-```json
-{
-  "name": "String (required)",
-  "description": "String (optional)",
-  "latitude": "Float (required)",
-  "longitude": "Float (required)",
-  "address": "String (optional)",
-  "city": "String (optional)",
-  "country": "String (optional)",
-  "is_active": "Boolean (default: true)"
-}
+Dự án cung cấp tài liệu chi tiết hướng dẫn phát triển và xử lý sự cố:
+
+1. **Hướng dẫn phát triển**:
+   ```bash
+   # Mở tài liệu phát triển
+   open docs/developer_guide.md
+   ```
+   Tài liệu này cung cấp hướng dẫn đầy đủ về cách phát triển API mới có tương tác với cơ sở dữ liệu.
+
+2. **Hướng dẫn xử lý lỗi migrations**:
+   ```bash
+   # Mở tài liệu xử lý sự cố migrations
+   open docs/troubleshooting_migrations.md
+   ```
+   Tài liệu này cung cấp hướng dẫn khắc phục các vấn đề phổ biến với migrations.
+
+### Unit Testing
+
+Chạy tất cả các tests:
+```bash
+poetry run pytest
 ```
 
-## Development Workflow
+Chạy tests với chi tiết (verbose):
+```bash
+poetry run pytest -v
+```
+
+Chạy tests cho từng module cụ thể:
+```bash
+poetry run pytest tests/api/v1/test_location_filtering.py -v
+```
+
+### Tạo migration mới
+
+Sau khi thay đổi model database:
+```bash
+# Tạo migration mới
+poetry run alembic revision --autogenerate -m "mô_tả_thay_đổi"
+
+# Áp dụng migration
+poetry run alembic upgrade head
+```
+
+## Triển khai
+
+### Triển khai với Docker Compose (Khuyến nghị)
+
+Dự án cung cấp cấu hình Docker Compose để triển khai cả API và cơ sở dữ liệu:
+
+1. Tạo hoặc chỉnh sửa file `docker-compose.yml`:
+   ```yaml
+   version: '3.8'
+   
+   services:
+     api:
+       build: .
+       ports:
+         - "8000:8000"
+       depends_on:
+         - db
+       environment:
+         - POSTGRES_SERVER=db
+         - POSTGRES_USER=postgres
+         - POSTGRES_PASSWORD=postgres
+         - POSTGRES_DB=travel
+         - POSTGRES_PORT=5432
+         - SECRET_KEY=your_secret_key_here
+         - ACCESS_TOKEN_EXPIRE_MINUTES=11520
+         - PROJECT_NAME=William Travel API
+         - API_V1_STR=/api/v1
+       volumes:
+         - ./:/app
+     
+     db:
+       image: postgis/postgis:14-3.3
+       volumes:
+         - postgres_data:/var/lib/postgresql/data/
+       environment:
+         - POSTGRES_USER=postgres
+         - POSTGRES_PASSWORD=postgres
+         - POSTGRES_DB=travel
+       ports:
+         - "5432:5432"
+   
+   volumes:
+     postgres_data:
+   ```
+
+2. Chạy Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Chạy migrations trong container:
+   ```bash
+   docker-compose exec api poetry run alembic upgrade head
+   ```
+
+4. Tạo dữ liệu mẫu (tùy chọn):
+   ```bash
+   docker-compose exec api poetry run python -m app.scripts.init_test_data
+   ```
+
+### Triển khai với Docker riêng lẻ
+
+1. Build Docker image:
+   ```bash
+   docker build -t william-travel-backend .
+   ```
+
+2. Chạy container:
+   ```bash
+   docker run -d -p 8000:8000 --name william-travel-api \
+     -e POSTGRES_SERVER=host.docker.internal \
+     -e POSTGRES_USER=postgres \
+     -e POSTGRES_PASSWORD=postgres \
+     -e POSTGRES_DB=travel \
+     -e POSTGRES_PORT=5432 \
+     william-travel-backend
+   ```
+
+## Liên hệ và đóng góp
+
+Để đóng góp cho dự án, vui lòng tạo issue hoặc pull request.
+Liên hệ: william@example.com
+
+## License
+
+Dự án này được phân phối dưới [MIT License](LICENSE).
 
 ### Code Quality Tools
 
