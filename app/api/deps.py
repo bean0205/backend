@@ -11,6 +11,10 @@ from app.core.security import ALGORITHM
 from app.db.session import get_db
 from app.db.models import User
 from app.crud.crud_user import user as user_crud
+import logging
+
+# Cấu hình logger mặc định
+logging.basicConfig(level=logging.INFO)
 
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(
@@ -92,7 +96,7 @@ async def get_current_active_superuser(
     return current_user
 
 
-def require_role(required_role: str):
+def require_role(required_role: list[str]):
     """
     Dependency to require a specific role.
     """
@@ -108,7 +112,9 @@ def require_role(required_role: str):
             return current_user
         
         # Check if user has the required role
-        if current_user.role != required_role:
+        if current_user.role not in required_role:
+            logging.info(f"User {current_user.email} has role: {current_user.role}")
+            logging.warn(f"User {current_user.email} does not have the required role: {required_role}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Không đủ quyền hạn.",

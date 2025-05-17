@@ -513,7 +513,7 @@ tour = CRUDTour(Tour)
 ### Bước 5: Thêm CRUD instance vào `app/crud/__init__.py`
 
 ```python
-from app.crud.crud_location import location
+from app.crud.crud_countries import location
 from app.crud.crud_tour import tour
 from app.crud.crud_user import user
 
@@ -661,7 +661,7 @@ async def delete_tour(
 ```python
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, location, users, tour
+from app.api.v1.endpoints import auth, countries, users, tour
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
