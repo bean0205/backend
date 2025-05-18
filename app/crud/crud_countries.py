@@ -4,9 +4,9 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, asc, and_, or_, Float
 
-
-from app.db.models import Location, Category, Country, Region, LocationAmenity, LocationAmenity, Rating
-from app.schemas.countries import CountryCreate, LocationUpdate, PaginatedCountriesResponse, SortOption, PaginatedCountriesRequest
+from app.db.models import Country
+from app.schemas.countries import CountryCreate, CountryUpdate, PaginatedCountriesResponse, SortOption, \
+    PaginatedCountriesRequest
 
 
 class CRUDCountries:
@@ -38,6 +38,15 @@ class CRUDCountries:
         )
         return result.scalars().all()
 
+    async def get_by_continent_id(self, db: AsyncSession, continent_id: int) -> List[Country]:
+        """
+        Get all countries for a specific continent.
+        """
+        result = await db.execute(
+            select(Country).where(Country.continent_id == continent_id)
+        )
+        return result.scalars().all()
+
     async def get_by_id(self, db: AsyncSession, id: int) -> Optional[Country]:
         """
         Get a country by its ID.
@@ -47,11 +56,12 @@ class CRUDCountries:
         )
         return result.scalars().first()
 
-    async def update(self, db: AsyncSession, db_obj: Country, obj_in: LocationUpdate) -> Country:
+    async def update(self, db: AsyncSession, db_obj: Country, obj_in: CountryUpdate) -> Country:
         """
         Update a country.
         """
-        for field, value in obj_in:
+        update_data = obj_in.dict(exclude_unset=True)
+        for field, value in update_data.items():
             setattr(db_obj, field, value)
         db.add(db_obj)
         await db.commit()
@@ -86,6 +96,9 @@ class CRUDCountries:
                 )
             )
 
+        if params.continent_id:
+            query = query.where(Country.continent_id == params.continent_id)
+
         if params.sort_by == SortOption.NAME_ASC:
             query = query.order_by(asc(Country.name))
         elif params.sort_by == SortOption.NAME_DESC:
@@ -106,11 +119,10 @@ class CRUDCountries:
         countries = result.scalars().all()
 
         return PaginatedCountriesResponse(
-            items =  countries,
-            total_items= total_count,
-            total_pages= (total_count // params.size) + (1 if total_count % params.size > 0 else 0),
-            current_page= params.page if params.page else 1
-
+            items=countries,
+            total_items=total_count,
+            total_pages=(total_count // params.size) + (1 if total_count % params.size > 0 else 0),
+            current_page=params.page if params.page else 1
         )
 
 

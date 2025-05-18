@@ -7,7 +7,7 @@ from app.api.deps import get_db_session, require_role
 from app.crud.crud_countries import countries
 from app.schemas.countries import (
     CountryCreate,
-    LocationUpdate,
+    CountryUpdate,
     PaginatedCountriesRequest,
     CountryOut,
 )
@@ -51,6 +51,19 @@ async def get_all_countries(
     return countries_list
 
 
+@router.get("/by-continent/{continent_id}", response_model=List[CountryOut],
+            dependencies=[Depends(
+                require_role([Role.SUPER_ADMIN.value, Role.ADMIN.value, Role.MODERATOR.value, Role.USER.value]))])
+async def get_countries_by_continent(
+        continent_id: int,
+        db: AsyncSession = Depends(get_db_session)
+) -> Any:
+    """
+    Get all countries for a specific continent.
+    """
+    return await countries.get_by_continent_id(db=db, continent_id=continent_id)
+
+
 @router.get("/country/{country_code}", response_model=CountryOut, dependencies=[
     Depends(require_role([Role.SUPER_ADMIN.value, Role.ADMIN.value, Role.MODERATOR.value, Role.USER.value]))])
 async def get_country(
@@ -73,7 +86,7 @@ async def get_country(
             dependencies=[Depends(require_role([Role.SUPER_ADMIN.value, Role.ADMIN.value]))])
 async def update_country(
         country_code: str,
-        country: LocationUpdate,
+        country: CountryUpdate,
         db: AsyncSession = Depends(get_db_session)
 ) -> Any:
     """
@@ -117,6 +130,7 @@ async def get_paginated_countries(
         page: int = Query(1, ge=1),
         size: int = Query(20, ge=1, le=100),
         search_term: Optional[str] = None,
+        continent_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         db: AsyncSession = Depends(get_db_session)
 ) -> Any:
@@ -127,6 +141,7 @@ async def get_paginated_countries(
         page=page,
         size=size,
         search_term=search_term,
+        continent_id=continent_id,
         sort_by=sort_by
     )
     logging.info(f"get_paginated_countries Request: {request}")

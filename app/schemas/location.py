@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List, Literal
+from typing import Optional, List, Any, Dict
 from enum import Enum
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
@@ -17,6 +17,19 @@ class SortOption(str, Enum):
     PRICE_DESC = "price_desc"
 
 
+# Location amenity schema
+class LocationAmenityCreate(BaseModel):
+    name: str
+
+
+# Location amenity response
+class LocationAmenityOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+
+
 # Base Location Schema for shared properties
 class LocationBase(BaseModel):
     name: str
@@ -25,13 +38,21 @@ class LocationBase(BaseModel):
     longitude: float
     address: Optional[str] = None
     city: Optional[str] = None
-    country: Optional[str] = None
+    country_id: Optional[int] = None
+    region_id: Optional[int] = None
+    district_id: Optional[int] = None
+    ward_id: Optional[int] = None
+    category_id: Optional[int] = None
+    thumbnail_url: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    popularity_score: float = 0.0
     is_active: bool = True
 
 
 # Create schema for API request
 class LocationCreate(LocationBase):
-    pass
+    amenities: Optional[List[str]] = None
 
 
 # Update schema for API request
@@ -42,39 +63,53 @@ class LocationUpdate(BaseModel):
     longitude: Optional[float] = None
     address: Optional[str] = None
     city: Optional[str] = None
-    country: Optional[str] = None
+    country_id: Optional[int] = None
+    region_id: Optional[int] = None
+    district_id: Optional[int] = None
+    ward_id: Optional[int] = None
+    category_id: Optional[int] = None
+    thumbnail_url: Optional[str] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    popularity_score: Optional[float] = None
     is_active: Optional[bool] = None
+    amenities: Optional[List[str]] = None
 
 
 # Schema for API responses
-class Location(LocationBase):
+class LocationOut(LocationBase):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
+    address_short: str
+    average_rating: Optional[float] = None
+    amenities: List[LocationAmenityOut] = []
     created_at: datetime
     updated_at: datetime
 
 
 # Filter and pagination parameters
 class LocationFilterParams(BaseModel):
-    page: int = 1
-    size: int = 20
+    page: int = Field(default=1, ge=1)
+    size: int = Field(default=20, ge=1, le=100)
     search_term: Optional[str] = None
     country_id: Optional[int] = None
     region_id: Optional[int] = None
+    district_id: Optional[int] = None
+    ward_id: Optional[int] = None
     category_id: Optional[int] = None
     price_range_min: Optional[float] = None
     price_range_max: Optional[float] = None
     amenities: Optional[List[str]] = None
     min_rating: Optional[float] = None
     sort_by: Optional[SortOption] = None
-    
+
     @field_validator('page')
     def validate_page(cls, v):
         if v < 1:
             return 1
         return v
-    
+
     @field_validator('size')
     def validate_size(cls, v):
         if v < 1:
@@ -87,13 +122,15 @@ class LocationFilterParams(BaseModel):
 # Location summary for list responses
 class LocationSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     name: str
     thumbnail_url: Optional[str] = None
     address_short: str
     category_name: Optional[str] = None
     average_rating: Optional[float] = None
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
 
 
 # Paginated response for location list
@@ -104,6 +141,10 @@ class PaginatedLocationResponse(BaseModel):
     current_page: int
 
 
-class LocationList(BaseModel):
-    items: List[Location]
-    total: int
+# Used for location search by coordinates
+class NearbyLocationRequest(BaseModel):
+    latitude: float = Field(..., description="Latitude of the center point")
+    longitude: float = Field(..., description="Longitude of the center point")
+    radius: float = Field(default=5.0, description="Search radius in kilometers", ge=0.1, le=50.0)
+    limit: int = Field(default=20, description="Maximum number of results to return", ge=1, le=100)
+    category_id: Optional[int] = None

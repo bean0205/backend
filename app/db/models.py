@@ -13,7 +13,7 @@ from app.db.session import Base
 
 class User(Base, AsyncAttrs):
     __tablename__ = "users"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(255))
@@ -25,7 +25,7 @@ class User(Base, AsyncAttrs):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
-    
+
     # Relationship to password reset tokens
     password_reset_tokens: Mapped[List["PasswordResetToken"]] = relationship(
         "PasswordResetToken", back_populates="user", cascade="all, delete-orphan"
@@ -34,17 +34,17 @@ class User(Base, AsyncAttrs):
 
 class PasswordResetToken(Base, AsyncAttrs):
     __tablename__ = "password_reset_tokens"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     token: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     expires_at: Mapped[datetime] = mapped_column(DateTime)
     is_used: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    
+
     # Relationship to user
     user: Mapped[User] = relationship("User", back_populates="password_reset_tokens")
-    
+
     @classmethod
     def generate_token(cls, user_id: int, expiration_hours: int = 24) -> "PasswordResetToken":
         """Generate a new password reset token"""
@@ -53,10 +53,20 @@ class PasswordResetToken(Base, AsyncAttrs):
             user_id=user_id,
             expires_at=datetime.utcnow() + timedelta(hours=expiration_hours)
         )
-    
+
     def is_valid(self) -> bool:
         """Check if token is valid (not used and not expired)"""
         return not self.is_used and datetime.utcnow() <= self.expires_at
+
+
+class Continent(Base, AsyncAttrs):
+    __tablename__ = "continents"
+    __table_args__ = {"comment": "Châu lục – ví dụ: Châu Á, Châu Âu"}
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True, comment="ID châu lục")
+    name: Mapped[str] = mapped_column(String(100), unique=True, index=True, comment="Tên châu lục (VD: Châu Á)")
+    code: Mapped[str] = mapped_column(String(10), unique=True, index=True, comment="Mã châu lục (VD: AS)")
+
 
 class Country(Base, AsyncAttrs):
     __tablename__ = "countries"
@@ -65,9 +75,12 @@ class Country(Base, AsyncAttrs):
     id: Mapped[int] = mapped_column(primary_key=True, index=True, comment="ID quốc gia")
     code: Mapped[str] = mapped_column(String(10), unique=True, index=True, comment="Mã quốc gia (VD: VN, US)")
     name: Mapped[str] = mapped_column(String(100), index=True, comment="Tên quốc gia")
+    continent_id: Mapped[int] = mapped_column(ForeignKey("continents.id", ondelete="CASCADE"),
+                                              comment="FK đến châu lục")
 
     regions: Mapped[List["Region"]] = relationship("Region", back_populates="country", cascade="all, delete-orphan")
-    locations: Mapped[List["Location"]] = relationship("Location", back_populates="country", cascade="all, delete-orphan")
+    locations: Mapped[List["Location"]] = relationship("Location", back_populates="country",
+                                                       cascade="all, delete-orphan")
 
 
 class Region(Base, AsyncAttrs):
@@ -76,10 +89,12 @@ class Region(Base, AsyncAttrs):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, comment="ID vùng")
     name: Mapped[str] = mapped_column(String(100), index=True, comment="Tên vùng (VD: Hà Nội, California)")
+    code: Mapped[str] = mapped_column(String(10), unique=True, index=True, comment="Mã vùng (VD: HN, CA)")
     country_id: Mapped[int] = mapped_column(ForeignKey("countries.id", ondelete="CASCADE"), comment="FK đến quốc gia")
 
     country: Mapped[Country] = relationship("Country", back_populates="regions")
-    districts: Mapped[List["District"]] = relationship("District", back_populates="region", cascade="all, delete-orphan")
+    districts: Mapped[List["District"]] = relationship("District", back_populates="region",
+                                                       cascade="all, delete-orphan")
     locations: Mapped[List["Location"]] = relationship("Location", back_populates="region")
 
 
@@ -89,6 +104,7 @@ class District(Base, AsyncAttrs):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, comment="ID quận/huyện")
     name: Mapped[str] = mapped_column(String(100), index=True, comment="Tên quận/huyện")
+    code: Mapped[str] = mapped_column(String(10), unique=True, index=True, comment="Mã quận/huyện (VD: BD, Q1)")
     region_id: Mapped[int] = mapped_column(ForeignKey("regions.id", ondelete="CASCADE"), comment="FK đến vùng")
 
     region: Mapped[Region] = relationship("Region", back_populates="districts")
@@ -102,7 +118,9 @@ class Ward(Base, AsyncAttrs):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True, comment="ID phường/xã")
     name: Mapped[str] = mapped_column(String(100), index=True, comment="Tên phường/xã")
-    district_id: Mapped[int] = mapped_column(ForeignKey("districts.id", ondelete="CASCADE"), comment="FK đến quận/huyện")
+    code: Mapped[str] = mapped_column(String(10), unique=True, index=True, comment="Mã phường/xã (VD: BN, TV)")
+    district_id: Mapped[int] = mapped_column(ForeignKey("districts.id", ondelete="CASCADE"),
+                                             comment="FK đến quận/huyện")
 
     district: Mapped[District] = relationship("District", back_populates="wards")
     locations: Mapped[List["Location"]] = relationship("Location", back_populates="ward")
@@ -135,9 +153,11 @@ class Location(Base, AsyncAttrs):
 
     country_id: Mapped[Optional[int]] = mapped_column(ForeignKey("countries.id"), nullable=True, comment="FK quốc gia")
     region_id: Mapped[Optional[int]] = mapped_column(ForeignKey("regions.id"), nullable=True, comment="FK vùng")
-    district_id: Mapped[Optional[int]] = mapped_column(ForeignKey("districts.id"), nullable=True, comment="FK quận/huyện")
+    district_id: Mapped[Optional[int]] = mapped_column(ForeignKey("districts.id"), nullable=True,
+                                                       comment="FK quận/huyện")
     ward_id: Mapped[Optional[int]] = mapped_column(ForeignKey("wards.id"), nullable=True, comment="FK phường/xã")
-    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id"), nullable=True, comment="FK loại địa điểm")
+    category_id: Mapped[Optional[int]] = mapped_column(ForeignKey("categories.id"), nullable=True,
+                                                       comment="FK loại địa điểm")
 
     thumbnail_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, comment="Ảnh đại diện (thumbnail)")
     price_min: Mapped[Optional[float]] = mapped_column(Float, nullable=True, comment="Giá tối thiểu")
@@ -146,7 +166,8 @@ class Location(Base, AsyncAttrs):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, comment="Cờ trạng thái hoạt động")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, comment="Thời gian tạo")
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="Thời gian cập nhật")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
+                                                 comment="Thời gian cập nhật")
 
     country: Mapped[Optional[Country]] = relationship("Country", back_populates="locations")
     region: Mapped[Optional[Region]] = relationship("Region", back_populates="locations")
@@ -154,7 +175,8 @@ class Location(Base, AsyncAttrs):
     ward: Mapped[Optional[Ward]] = relationship("Ward", back_populates="locations")
     category: Mapped[Optional[Category]] = relationship("Category", back_populates="locations")
 
-    amenities_rel: Mapped[List["LocationAmenity"]] = relationship("LocationAmenity", back_populates="location", cascade="all, delete-orphan")
+    amenities_rel: Mapped[List["LocationAmenity"]] = relationship("LocationAmenity", back_populates="location",
+                                                                  cascade="all, delete-orphan")
     ratings: Mapped[List["Rating"]] = relationship("Rating", back_populates="location", cascade="all, delete-orphan")
 
     @property
