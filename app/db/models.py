@@ -8,6 +8,7 @@ from sqlalchemy import func as sql_func
 from geoalchemy2 import Geometry
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.crud.crud_countries import countries
 from app.db.session import Base
 
 
@@ -67,6 +68,9 @@ class Continent(Base, AsyncAttrs):
     name: Mapped[str] = mapped_column(String(100), unique=True, index=True, comment="Tên châu lục (VD: Châu Á)")
     code: Mapped[str] = mapped_column(String(10), unique=True, index=True, comment="Mã châu lục (VD: AS)")
 
+    countries: Mapped[List["Country"]] = relationship("Country", back_populates="continent",
+                                                      cascade="all, delete-orphan")
+
 
 class Country(Base, AsyncAttrs):
     __tablename__ = "countries"
@@ -77,7 +81,7 @@ class Country(Base, AsyncAttrs):
     name: Mapped[str] = mapped_column(String(100), index=True, comment="Tên quốc gia")
     continent_id: Mapped[int] = mapped_column(ForeignKey("continents.id", ondelete="CASCADE"),
                                               comment="FK đến châu lục")
-
+    continent: Mapped["Continent"] = relationship("Continent", back_populates="countries")
     regions: Mapped[List["Region"]] = relationship("Region", back_populates="country", cascade="all, delete-orphan")
     locations: Mapped[List["Location"]] = relationship("Location", back_populates="country",
                                                        cascade="all, delete-orphan")
