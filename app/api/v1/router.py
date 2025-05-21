@@ -2,7 +2,8 @@ from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
     auth_router, users_router, locations_router, accommodations_router, foods_router,
-    ratings_router, media_router, articles_router, events_router, community_posts_router, test_router
+    ratings_router, media_router, articles_router, events_router, community_posts_router, test_router,
+    permissions, roles
 )
 
 api_router = APIRouter()
@@ -82,4 +83,18 @@ api_router.include_router(
     test_router,
     prefix="/test",
     tags=["test"]
+)
+
+# Permission endpoints
+api_router.include_router(
+    permissions.router,
+    prefix="/permissions",
+    tags=["permissions"]
+)
+
+# Role endpoints
+api_router.include_router(
+    roles.router,
+    prefix="/roles",
+    tags=["roles"]
 )

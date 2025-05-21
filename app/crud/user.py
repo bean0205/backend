@@ -25,7 +25,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             email=obj_in.email,
             hashed_password=get_password_hash(obj_in.password),
             full_name=obj_in.full_name,
-            role=obj_in.role,
+            role_id=obj_in.role_id,
             is_active=obj_in.is_active,
             is_superuser=False,
         )
@@ -74,6 +74,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         Check if a user is a superuser.
         """
         return user.is_superuser
+
+    async def get_by_role_id(self, db: AsyncSession, *, role_id: int) -> List[User]:
+        """
+        Get all users with a specific role_id.
+        """
+        result = await db.execute(select(User).filter(User.role_id == role_id))
+        return result.scalars().all()
 
 
 user = CRUDUser(User)

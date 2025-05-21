@@ -11,6 +11,43 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
 
+# Định nghĩa bảng liên kết giữa Role và Permission
+role_permission = Table(
+    "role_permissions",
+    Base.metadata,
+    Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True),
+    Column("permission_id", Integer, ForeignKey("permissions.id"), primary_key=True)
+)
+
+
+class Permission(AsyncAttrs, Base):
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    description = Column(String(255))
+    code = Column(String(100), unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, nullable=True, onupdate=datetime.utcnow)
+
+    # Relationships
+    roles = relationship("Role", secondary=role_permission, back_populates="permissions")
+
+
+class Role(AsyncAttrs, Base):
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), unique=True, nullable=False)
+    description = Column(String(255))
+    is_default = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, nullable=True, onupdate=datetime.utcnow)
+
+    # Relationships
+    permissions = relationship("Permission", secondary=role_permission, back_populates="roles")
+    users = relationship("User", back_populates="role")
+
 
 class User(AsyncAttrs, Base):
     __tablename__ = "users"
@@ -19,13 +56,14 @@ class User(AsyncAttrs, Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     full_name = Column(String(255), nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=datetime.utcnow)
 
     # Relationships
+    role = relationship("Role", back_populates="users")
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user")
     accommodations = relationship("Accommodation", back_populates="user")
     ratings = relationship("Rating", back_populates="user")

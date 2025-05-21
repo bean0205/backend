@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     is_active: bool = True
-    role: str = "user"
+    role_id: int
 
 
 class UserCreate(UserBase):
@@ -22,7 +22,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None
-    role: Optional[str] = None
+    role_id: Optional[int] = None
 
 
 class User(UserBase, TimestampMixin, BaseSchema):

@@ -7,20 +7,22 @@ parameters and response models.
 
 1. [Authentication](#authentication)
 2. [Users](#users)
-3. [Locations](#locations)
+3. [Roles](#roles)
+4. [Permissions](#permissions)
+5. [Locations](#locations)
     - [Continents](#continents)
     - [Countries](#countries)
     - [Regions](#regions)
     - [Districts](#districts)
     - [Wards](#wards)
     - [Location Categories](#location-categories)
-4. [Accommodations](#accommodations)
-5. [Foods](#foods)
-6. [Media](#media)
-7. [Articles](#articles)
-8. [Events](#events)
-9. [Community Posts](#community-posts)
-10. [Ratings](#ratings)
+6. [Accommodations](#accommodations)
+7. [Foods](#foods)
+8. [Media](#media)
+9. [Articles](#articles)
+10. [Events](#events)
+11. [Community Posts](#community-posts)
+12. [Ratings](#ratings)
 
 ---
 
@@ -279,6 +281,315 @@ Create a new user (superuser only).
 ```
 
 **Response:** Created user object (same format as in List All Users)
+
+---
+
+## Roles
+
+Role management endpoints for access control.
+
+### List Roles
+
+Get list of all roles with their permissions.
+
+**Endpoint:** `GET /api/v1/roles/`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Query Parameters:**
+
+- skip: int (default: 0)
+- limit: int (default: 100)
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Admin",
+    "description": "Administrator with full access",
+    "is_default": false,
+    "permissions": [
+      {
+        "id": 1,
+        "name": "Create User",
+        "code": "user:create",
+        "description": "Can create new users"
+      },
+      {
+        "id": 2,
+        "name": "Delete User",
+        "code": "user:delete",
+        "description": "Can delete users"
+      }
+    ],
+    "created_at": "2025-05-18T15:30:45",
+    "updated_at": "2025-05-18T15:30:45"
+  },
+  {
+    "id": 2,
+    "name": "User",
+    "description": "Standard user",
+    "is_default": true,
+    "permissions": [
+      {
+        "id": 3,
+        "name": "Create Post",
+        "code": "post:create",
+        "description": "Can create posts"
+      }
+    ],
+    "created_at": "2025-05-18T15:30:45",
+    "updated_at": "2025-05-18T15:30:45"
+  }
+]
+```
+
+### Get Role
+
+Get a specific role by ID.
+
+**Endpoint:** `GET /api/v1/roles/{role_id}`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Response:** Same as a single role object from the list endpoint
+
+**Status Codes:**
+
+- 200: Success
+- 404: Role not found
+
+### Create Role
+
+Create a new role with permissions.
+
+**Endpoint:** `POST /api/v1/roles/`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Request Body:**
+
+```json
+{
+  "name": "Content Manager",
+  "description": "Manages content across the platform",
+  "is_default": false,
+  "permission_ids": [
+    3,
+    4,
+    5
+  ]
+}
+```
+
+**Response:** Created role object with permissions
+
+**Status Codes:**
+
+- 201: Created
+- 400: Bad request (e.g., role name already exists)
+- 403: Forbidden (not authorized)
+
+### Update Role
+
+Update an existing role.
+
+**Endpoint:** `PUT /api/v1/roles/{role_id}`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Request Body:**
+
+```json
+{
+  "name": "Updated Role Name",
+  // Optional
+  "description": "Updated role description",
+  // Optional
+  "is_default": false,
+  // Optional
+  "permission_ids": [
+    1,
+    2,
+    3,
+    4
+  ]
+  // Optional - replaces existing permissions
+}
+```
+
+**Response:** Updated role object with permissions
+
+**Status Codes:**
+
+- 200: Success
+- 404: Role not found
+- 400: Bad request (e.g., role name already exists)
+- 403: Forbidden (not authorized)
+
+### Delete Role
+
+Delete a role if it's not assigned to any users.
+
+**Endpoint:** `DELETE /api/v1/roles/{role_id}`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Status Codes:**
+
+- 200: Success
+- 400: Bad Request (role is assigned to users)
+- 404: Role not found
+- 403: Forbidden (not authorized)
+
+---
+
+## Permissions
+
+Permission management endpoints for access control.
+
+### List Permissions
+
+Get list of all permissions.
+
+**Endpoint:** `GET /api/v1/permissions/`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Query Parameters:**
+
+- skip: int (default: 0)
+- limit: int (default: 100)
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Create User",
+    "code": "user:create",
+    "description": "Can create new users",
+    "created_at": "2025-05-18T15:30:45",
+    "updated_at": "2025-05-18T15:30:45"
+  },
+  {
+    "id": 2,
+    "name": "Delete User",
+    "code": "user:delete",
+    "description": "Can delete users",
+    "created_at": "2025-05-18T15:30:45",
+    "updated_at": "2025-05-18T15:30:45"
+  }
+]
+```
+
+### Get Permission
+
+Get a specific permission by ID.
+
+**Endpoint:** `GET /api/v1/permissions/{permission_id}`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Response:** Same as a single permission object from the list endpoint
+
+**Status Codes:**
+
+- 200: Success
+- 404: Permission not found
+
+### Create Permission
+
+Create a new permission.
+
+**Endpoint:** `POST /api/v1/permissions/`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Request Body:**
+
+```json
+{
+  "name": "Manage Articles",
+  "code": "article:manage",
+  "description": "Can manage all articles"
+}
+```
+
+**Response:** Created permission object
+
+**Status Codes:**
+
+- 201: Created
+- 400: Bad request (e.g., permission code already exists)
+- 403: Forbidden (not authorized)
+
+### Update Permission
+
+Update an existing permission.
+
+**Endpoint:** `PUT /api/v1/permissions/{permission_id}`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Request Body:**
+
+```json
+{
+  "name": "Updated Permission Name",
+  // Optional
+  "code": "updated:code",
+  // Optional
+  "description": "Updated description"
+  // Optional
+}
+```
+
+**Response:** Updated permission object
+
+**Status Codes:**
+
+- 200: Success
+- 404: Permission not found
+- 400: Bad request (e.g., permission code already exists)
+- 403: Forbidden (not authorized)
+
+### Delete Permission
+
+Delete a permission.
+
+**Endpoint:** `DELETE /api/v1/permissions/{permission_id}`
+
+**Headers:**
+
+- Authorization: Bearer {access_token}
+
+**Status Codes:**
+
+- 200: Success
+- 404: Permission not found
+- 403: Forbidden (not authorized)
 
 ---
 
