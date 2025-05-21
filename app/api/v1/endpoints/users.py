@@ -1,74 +1,134 @@
-from typing import Any, List, Optional
+from typing import Any, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db_session, require_role
-from app.crud.crud_user import user
-from app.db.models import User
-from app.schemas.user import UserRead, UserUpdate
-
+from app import crud, schemas
+from app.api import deps
+from app.core.security import get_password_hash
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[UserRead])
-async def read_users(
-    db: AsyncSession = Depends(get_db_session),
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(require_role("admin"))
+@router.get("/me", response_model=schemas.User)
+async def read_current_user(
+        current_user: schemas.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Retrieve users. Requires admin role.
+    Get current user information
     """
-    # Execute a simple query to get users with pagination
-    users = []
-    async for session in get_db_session():
-        query = session.query(User).offset(skip).limit(limit)
-        result = await session.execute(query)
-        users = result.scalars().all()
-    
+    return current_user
+
+
+@router.put("/me", response_model=schemas.User)
+async def update_current_user(
+        *,
+        db: AsyncSession = Depends(deps.get_db_session),
+        user_in: schemas.UserUpdate,
+        current_user: schemas.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Update current user information
+    """
+    user = await crud.user.update(db, db_obj=current_user, obj_in=user_in)
+    return user
+
+
+@router.put("/me/password", response_model=schemas.User)
+async def update_password(
+        *,
+        db: AsyncSession = Depends(deps.get_db_session),
+        password_change: schemas.PasswordChange,
+        current_user: schemas.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Update current user password
+    """
+    # Verify current password
+    if not crud.user.authenticate(db, email=current_user.email, password=password_change.current_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    # Update password
+    user_in = schemas.UserUpdate(password=password_change.new_password)
+    user = await crud.user.update(db, db_obj=current_user, obj_in=user_in)
+    return user
+
+
+@router.get("/", response_model=List[schemas.User])
+async def read_users(
+        db: AsyncSession = Depends(deps.get_db_session),
+        skip: int = 0,
+        limit: int = 100,
+        current_user: schemas.User = Depends(deps.get_current_active_superuser),
+) -> Any:
+    """
+    Retrieve users. Only for superusers.
+    """
+    users = await crud.user.get_multi(db, skip=skip, limit=limit)
     return users
 
 
-@router.get("/{user_id}", response_model=UserRead)
-async def read_user(
-    *,
-    db: AsyncSession = Depends(get_db_session),
-    user_id: int,
-    current_user: User = Depends(require_role("admin"))
+@router.post("/", response_model=schemas.User)
+async def create_user(
+        *,
+        db: AsyncSession = Depends(deps.get_db_session),
+        user_in: schemas.UserCreate,
+        current_user: schemas.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
-    Get a specific user by ID. Requires admin role.
+    Create new user. Only for superusers.
     """
-    db_user = await user.get(db=db, user_id=user_id)
-    if not db_user:
+    user = await crud.user.get_by_email(db, email=user_in.email)
+    if user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Người dùng không tồn tại"
+            status_code=400,
+            detail="The user with this email already exists in the system.",
         )
-    return db_user
+    user = await crud.user.create(db, obj_in=user_in)
+    return user
 
 
-@router.put("/{user_id}", response_model=UserRead)
+@router.get("/{user_id}", response_model=schemas.User)
+async def read_user_by_id(
+        user_id: int,
+        db: AsyncSession = Depends(deps.get_db_session),
+        current_user: schemas.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get a specific user by id.
+    Normal users can only get their own user.
+    Superusers can get any user.
+    """
+    user = await crud.user.get(db, id=user_id)
+    if user == current_user:
+        return user
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user doesn't have enough privileges",
+        )
+    return user
+
+
+@router.put("/{user_id}", response_model=schemas.User)
 async def update_user(
-    *,
-    db: AsyncSession = Depends(get_db_session),
-    user_id: int,
-    user_in: UserUpdate,
-    current_user: User = Depends(require_role("admin"))
+        *,
+        db: AsyncSession = Depends(deps.get_db_session),
+        user_id: int,
+        user_in: schemas.UserUpdate,
+        current_user: schemas.User = Depends(deps.get_current_active_superuser),
 ) -> Any:
     """
-    Update a user. Requires admin role.
+    Update a user. Only for superusers.
     """
-    db_user = await user.get(db=db, user_id=user_id)
-    if not db_user:
+    user = await crud.user.get(db, id=user_id)
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Người dùng không tồn tại"
+            detail="User not found",
         )
-    
-    # Update user
-    updated_user = await user.update(db=db, db_obj=db_user, obj_in=user_in)
-    return updated_user
+    user = await crud.user.update(db, db_obj=user, obj_in=user_in)
+    return user

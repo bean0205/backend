@@ -1,82 +1,73 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, validator
+from pydantic import BaseModel, EmailStr, Field
+
+from app.schemas.base import BaseSchema, TimestampMixin
 
 
-# Base User Schema for shared properties
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     is_active: bool = True
-    role: str = "user"  # Default role is "user"
+    role: str = "user"
 
 
-# Schema for user creation
-class UserCreate(BaseModel):
-    email: EmailStr
+class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
-    full_name: str
-    role: Optional[str] = "user"  # Default role is "user"
-    
-    @validator('password')
-    def password_strength(cls, v):
-        """Validate password strength"""
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if not any(char.isdigit() for char in v):
-            raise ValueError("Password must contain at least one digit")
-        if not any(char.isalpha() for char in v):
-            raise ValueError("Password must contain at least one letter")
-        return v
 
 
-# Schema for user response
-class UserRead(UserBase):
-    model_config = ConfigDict(from_attributes=True)
-    
-    id: int
-    created_at: datetime
-
-
-# Schema for updating user
 class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     full_name: Optional[str] = None
+    password: Optional[str] = None
     is_active: Optional[bool] = None
     role: Optional[str] = None
 
 
-# Login credentials schema
-class LoginCredentials(BaseModel):
-    email: EmailStr
-    password: str
+class User(UserBase, TimestampMixin, BaseSchema):
+    id: int
+    is_superuser: bool = False
 
 
-# Token schema
+class UserInDB(User):
+    hashed_password: str
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
-    user: UserRead
 
 
-# Email schema for password reset
-class EmailSchema(BaseModel):
+class TokenPayload(BaseModel):
+    sub: Optional[str] = None
+    exp: Optional[int] = None
+
+
+class PasswordReset(BaseModel):
     email: EmailStr
 
 
-# Reset password schema
-class ResetPasswordSchema(BaseModel):
+class PasswordResetConfirm(BaseModel):
     token: str
+    password: str = Field(..., min_length=8)
+
+
+class PasswordChange(BaseModel):
+    current_password: str
     new_password: str = Field(..., min_length=8)
-    
-    @validator('new_password')
-    def password_strength(cls, v):
-        """Validate password strength"""
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-        if not any(char.isdigit() for char in v):
-            raise ValueError("Password must contain at least one digit")
-        if not any(char.isalpha() for char in v):
-            raise ValueError("Password must contain at least one letter")
-        return v
+
+
+class PasswordResetTokenBase(BaseModel):
+    token: str
+    user_id: int
+    expires_at: datetime
+    is_used: bool = False
+
+
+class PasswordResetTokenCreate(PasswordResetTokenBase):
+    pass
+
+
+class PasswordResetToken(PasswordResetTokenBase, TimestampMixin, BaseSchema):
+    id: int
