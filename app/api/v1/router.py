@@ -1,85 +1,85 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
-    auth, users, locations, accommodations, foods,
-    ratings, media, articles, events, community_posts, test
+    auth_router, users_router, locations_router, accommodations_router, foods_router,
+    ratings_router, media_router, articles_router, events_router, community_posts_router, test_router
 )
 
 api_router = APIRouter()
 
 # Auth endpoints
 api_router.include_router(
-    auth.router,
+    auth_router,
     prefix="/auth",
     tags=["authentication"]
 )
 
 # User endpoints
 api_router.include_router(
-    users.router,
+    users_router,
     prefix="/users",
     tags=["users"]
 )
 
-# Location endpoints
+# Locations endpoints
 api_router.include_router(
-    locations.router,
+    locations_router,
     prefix="/locations",
     tags=["locations"]
 )
 
-# Accommodation endpoints
+# Accommodations endpoints
 api_router.include_router(
-    accommodations.router,
+    accommodations_router,
     prefix="/accommodations",
     tags=["accommodations"]
 )
 
-# Food endpoints
+# Foods endpoints
 api_router.include_router(
-    foods.router,
+    foods_router,
     prefix="/foods",
     tags=["foods"]
 )
 
-# Rating endpoints
+# Ratings endpoints
 api_router.include_router(
-    ratings.router,
+    ratings_router,
     prefix="/ratings",
     tags=["ratings"]
 )
 
 # Media endpoints
 api_router.include_router(
-    media.router,
+    media_router,
     prefix="/media",
     tags=["media"]
 )
 
-# Article endpoints
+# Articles endpoints
 api_router.include_router(
-    articles.router,
+    articles_router,
     prefix="/articles",
     tags=["articles"]
 )
 
-# Event endpoints
+# Events endpoints
 api_router.include_router(
-    events.router,
+    events_router,
     prefix="/events",
     tags=["events"]
 )
 
-# Community post endpoints
+# Community posts endpoints
 api_router.include_router(
-    community_posts.router,
-    prefix="/community",
-    tags=["community"]
+    community_posts_router,
+    prefix="/community-posts",
+    tags=["community-posts"]
 )
 
 # Test endpoints
 api_router.include_router(
-    test.router,
+    test_router,
     prefix="/test",
     tags=["test"]
 )
