@@ -1,201 +1,250 @@
 import pytest
-from httpx import AsyncClient
 from fastapi import status
+from sqlalchemy.ext.asyncio import AsyncSession
+from httpx import AsyncClient
+from app import crud
+from app.schemas.location import LocationCreate, LocationUpdate
 
-from app.core.config import settings
-from tests.api.v1.base import BaseAPITest
+
+@pytest.fixture
+async def create_test_admin_user(db: AsyncSession):
+    """Create a superuser for testing protected endpoints"""
+    from app.schemas.user import UserCreate
+
+    admin_data = UserCreate(
+        email="admin@test.com",
+        password="admin_password123",
+        is_superuser=True,
+        full_name="Test Admin"
+    )
+    admin_user = await crud.user.create(db, obj_in=admin_data)
+    return admin_user
 
 
-class TestLocationAPI(BaseAPITest):
-    """Test cases for Location API endpoints"""
+@pytest.fixture
+async def admin_token_headers(client: AsyncClient, create_test_admin_user):
+    """Get token headers for admin user"""
+    login_data = {
+        "username": "admin@test.com",
+        "password": "admin_password123",
+    }
+    response = await client.post("/api/v1/auth/login", data=login_data)
+    tokens = response.json()
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
-    @pytest.mark.asyncio
-    async def test_create_location(self, client: AsyncClient, superuser_token_headers: dict):
-        """Test creating a new location (admin only)"""
-        location_data = {
-            "name": "Test City",
-            "description": "A beautiful test city for tourism",
-            "country": "Test Country",
-            "region": "Test Region",
-            "latitude": 10.123456,
-            "longitude": 20.654321,
-            "continent": "Asia",
-            "is_active": True
-        }
 
-        # When: Creating a location with admin privileges
-        response = await client.post(
-            f"{settings.API_V1_STR}/locations/",
-            headers=superuser_token_headers,
-            json=location_data
-        )
+@pytest.fixture
+async def create_test_location(db: AsyncSession):
+    """Create a test location"""
+    location_data = LocationCreate(
+        name="Test City",
+        country="Test Country",
+        latitude=35.6812,
+        longitude=139.7671,
+        description="A beautiful test city for travelers",
+        continent="Asia",
+        is_active=True
+    )
+    location = await crud.location.create(db, obj_in=location_data)
+    return location
 
-        # Then: Location should be created successfully
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["name"] == location_data["name"]
-        assert data["country"] == location_data["country"]
-        assert "id" in data
 
-        # When: Attempting to create a location without admin privileges
-        response = await client.post(
-            f"{settings.API_V1_STR}/locations/",
-            json=location_data
-        )
+@pytest.mark.asyncio
+async def test_create_location(client: AsyncClient, admin_token_headers):
+    """Test creating a new location"""
+    location_data = {
+        "name": "Paris",
+        "country": "France",
+        "latitude": 48.8566,
+        "longitude": 2.3522,
+        "description": "The city of lights and romance",
+        "continent": "Europe",
+        "is_active": True
+    }
 
-        # Then: Request should be denied
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    response = await client.post(
+        "/api/v1/locations/",
+        headers=admin_token_headers,
+        json=location_data
+    )
 
-    @pytest.mark.asyncio
-    async def test_read_locations(self, client: AsyncClient):
-        """Test reading all locations (public endpoint)"""
-        # When: Getting all locations
-        response = await client.get(f"{settings.API_V1_STR}/locations/")
+    assert response.status_code == status.HTTP_200_OK
+    created_location = response.json()
+    assert created_location["name"] == "Paris"
+    assert created_location["country"] == "France"
+    assert created_location["continent"] == "Europe"
+    assert abs(created_location["latitude"] - 48.8566) < 0.001
+    assert abs(created_location["longitude"] - 2.3522) < 0.001
 
-        # Then: Locations should be returned successfully
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
 
-    @pytest.mark.asyncio
-    async def test_read_location(self, client: AsyncClient, superuser_token_headers: dict):
-        """Test reading a specific location"""
-        # First create a location
-        location_data = {
-            "name": "Read Test City",
-            "description": "A city to test reading",
-            "country": "Read Test Country",
-            "region": "Read Test Region",
-            "latitude": 11.123456,
-            "longitude": 21.654321,
-            "is_active": True
-        }
-        response = await client.post(
-            f"{settings.API_V1_STR}/locations/",
-            headers=superuser_token_headers,
-            json=location_data
-        )
-        location_id = response.json()["id"]
+@pytest.mark.asyncio
+async def test_read_locations(client: AsyncClient, create_test_location):
+    """Test retrieving all locations (public endpoint)"""
+    response = await client.get("/api/v1/locations/")
 
-        # When: Getting the location
-        response = await client.get(f"{settings.API_V1_STR}/locations/{location_id}")
+    assert response.status_code == status.HTTP_200_OK
+    locations = response.json()
+    assert len(locations) >= 1
+    assert any(loc["name"] == "Test City" for loc in locations)
 
-        # Then: Location details should be returned
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == location_id
-        assert data["name"] == location_data["name"]
 
-    @pytest.mark.asyncio
-    async def test_update_location(self, client: AsyncClient, superuser_token_headers: dict):
-        """Test updating a location"""
-        # First create a location
-        location_data = {
-            "name": "Update Test City",
-            "description": "A city to test updating",
-            "country": "Update Test Country",
-            "region": "Update Test Region",
-            "latitude": 12.123456,
-            "longitude": 22.654321,
-            "is_active": True
-        }
-        response = await client.post(
-            f"{settings.API_V1_STR}/locations/",
-            headers=superuser_token_headers,
-            json=location_data
-        )
-        location_id = response.json()["id"]
+@pytest.mark.asyncio
+async def test_read_locations_with_filters(client: AsyncClient, create_test_location):
+    """Test retrieving locations with filters"""
+    # Filter by continent
+    response = await client.get("/api/v1/locations/?continent=Asia")
 
-        # Update data
-        update_data = {
-            "name": "Updated City Name",
-            "description": "Updated city description",
-            "is_featured": True
-        }
+    assert response.status_code == status.HTTP_200_OK
+    locations = response.json()
+    assert all(loc["continent"] == "Asia" for loc in locations)
 
-        # When: Updating the location with admin privileges
-        response = await client.put(
-            f"{settings.API_V1_STR}/locations/{location_id}",
-            headers=superuser_token_headers,
-            json=update_data
-        )
+    # Filter by country
+    response = await client.get("/api/v1/locations/?country=Test%20Country")
 
-        # Then: Location should be updated successfully
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["id"] == location_id
-        assert data["name"] == update_data["name"]
-        assert data["description"] == update_data["description"]
-        assert data["is_featured"] == update_data["is_featured"]
+    assert response.status_code == status.HTTP_200_OK
+    locations = response.json()
+    assert all(loc["country"] == "Test Country" for loc in locations)
 
-    @pytest.mark.asyncio
-    async def test_delete_location(self, client: AsyncClient, superuser_token_headers: dict):
-        """Test deleting a location"""
-        # First create a location
-        location_data = {
-            "name": "Delete Test City",
-            "description": "A city to test deletion",
-            "country": "Delete Test Country",
-            "region": "Delete Test Region",
-            "latitude": 13.123456,
-            "longitude": 23.654321,
-            "is_active": True
-        }
-        response = await client.post(
-            f"{settings.API_V1_STR}/locations/",
-            headers=superuser_token_headers,
-            json=location_data
-        )
-        location_id = response.json()["id"]
 
-        # When: Deleting the location with admin privileges
-        response = await client.delete(
-            f"{settings.API_V1_STR}/locations/{location_id}",
-            headers=superuser_token_headers
-        )
+@pytest.mark.asyncio
+async def test_search_locations(client: AsyncClient, create_test_location):
+    """Test searching locations by name or description"""
+    response = await client.get("/api/v1/locations/search?query=beautiful")
 
-        # Then: Location should be deleted successfully
-        assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK
+    locations = response.json()
+    assert len(locations) >= 1
+    assert any("beautiful" in loc["description"].lower() for loc in locations)
 
-        # Verify deletion
-        response = await client.get(f"{settings.API_V1_STR}/locations/{location_id}")
-        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    @pytest.mark.asyncio
-    async def test_get_locations_by_country(self, client: AsyncClient):
-        """Test getting locations by country"""
-        # When: Getting locations by country
-        country = "Test Country"
-        response = await client.get(
-            f"{settings.API_V1_STR}/locations/country/{country}"
-        )
+@pytest.mark.asyncio
+async def test_read_location(client: AsyncClient, create_test_location):
+    """Test retrieving a location by ID"""
+    location_id = create_test_location.id
 
-        # Then: Locations for the specified country should be returned
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
+    response = await client.get(f"/api/v1/locations/{location_id}")
 
-    @pytest.mark.asyncio
-    async def test_get_locations_by_continent(self, client: AsyncClient):
-        """Test getting locations by continent"""
-        # When: Getting locations by continent
-        continent = "Asia"
-        response = await client.get(
-            f"{settings.API_V1_STR}/locations/continent/{continent}"
-        )
+    assert response.status_code == status.HTTP_200_OK
+    location = response.json()
+    assert location["id"] == location_id
+    assert location["name"] == "Test City"
+    assert location["country"] == "Test Country"
 
-        # Then: Locations for the specified continent should be returned
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
 
-    @pytest.mark.asyncio
-    async def test_get_featured_locations(self, client: AsyncClient):
-        """Test getting featured locations"""
-        # When: Getting featured locations
-        response = await client.get(f"{settings.API_V1_STR}/locations/featured")
+@pytest.mark.asyncio
+async def test_read_location_not_found(client: AsyncClient):
+    """Test retrieving a non-existent location"""
+    response = await client.get("/api/v1/locations/999999")  # Non-existent ID
 
-        # Then: Featured locations should be returned
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert isinstance(data, list)
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_update_location(client: AsyncClient, admin_token_headers, create_test_location):
+    """Test updating a location"""
+    location_id = create_test_location.id
+    update_data = {
+        "name": "Updated City Name",
+        "description": "Updated description"
+    }
+
+    response = await client.put(
+        f"/api/v1/locations/{location_id}",
+        headers=admin_token_headers,
+        json=update_data
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    updated_location = response.json()
+    assert updated_location["name"] == "Updated City Name"
+    assert updated_location["description"] == "Updated description"
+    assert updated_location["country"] == "Test Country"  # Unchanged field
+
+
+@pytest.mark.asyncio
+async def test_update_location_not_found(client: AsyncClient, admin_token_headers):
+    """Test updating a non-existent location"""
+    update_data = {
+        "name": "Non-existent Location",
+        "description": "This location doesn't exist"
+    }
+
+    response = await client.put(
+        "/api/v1/locations/999999",  # Non-existent ID
+        headers=admin_token_headers,
+        json=update_data
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_delete_location(client: AsyncClient, admin_token_headers, create_test_location):
+    """Test deleting a location"""
+    location_id = create_test_location.id
+
+    response = await client.delete(
+        f"/api/v1/locations/{location_id}",
+        headers=admin_token_headers
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    # Verify location no longer exists or is marked as inactive
+    get_response = await client.get(f"/api/v1/locations/{location_id}")
+
+    # Either it should return 404 or the location should be marked as inactive
+    if get_response.status_code == status.HTTP_200_OK:
+        location = get_response.json()
+        assert location["is_active"] is False
+    else:
+        assert get_response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.asyncio
+async def test_location_by_coordinates(client: AsyncClient, create_test_location):
+    """Test finding locations near specific coordinates"""
+    lat = 35.6812
+    lon = 139.7671
+    radius = 10  # km
+
+    response = await client.get(
+        f"/api/v1/locations/nearby?latitude={lat}&longitude={lon}&radius={radius}"
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    locations = response.json()
+    assert len(locations) >= 1
+
+    # Verify that returned locations are within the specified radius
+    for loc in locations:
+        # Calculate approximate distance (simplified for testing)
+        lat_diff = abs(loc["latitude"] - lat)
+        lon_diff = abs(loc["longitude"] - lon)
+        approx_distance = (lat_diff ** 2 + lon_diff ** 2) ** 0.5 * 111  # Rough conversion to km
+        assert approx_distance <= radius
+
+
+@pytest.mark.asyncio
+async def test_unauthorized_location_operations(client: AsyncClient, create_test_location):
+    """Test that protected location operations require authentication"""
+    location_id = create_test_location.id
+
+    # Try to create without auth
+    create_data = {
+        "name": "Unauthorized City",
+        "country": "Unauthorized Country",
+        "latitude": 0,
+        "longitude": 0
+    }
+    response = await client.post("/api/v1/locations/", json=create_data)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # Try to update without auth
+    update_data = {"name": "Updated Name"}
+    response = await client.put(f"/api/v1/locations/{location_id}", json=update_data)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    # Try to delete without auth
+    response = await client.delete(f"/api/v1/locations/{location_id}")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

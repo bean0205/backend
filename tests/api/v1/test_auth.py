@@ -1,112 +1,214 @@
 import pytest
-from httpx import AsyncClient
 from fastapi import status
+from sqlalchemy.ext.asyncio import AsyncSession
+from httpx import AsyncClient
+from app import crud
+from app.schemas.user import UserCreate
 
-from app.core.config import settings
-from tests.api.v1.base import BaseAPITest
+
+@pytest.fixture
+async def create_test_user(db: AsyncSession):
+    """Create a test user for authentication tests"""
+    user_data = UserCreate(
+        email="auth_user@test.com",
+        password="auth_password123",
+        full_name="Authentication Test User"
+    )
+    user = await crud.user.create(db, obj_in=user_data)
+    return user
 
 
-class TestAuthAPI(BaseAPITest):
-    """Test cases for Authentication API endpoints"""
+@pytest.mark.asyncio
+async def test_login_success(client: AsyncClient, create_test_user):
+    """Test successful login with correct credentials"""
+    login_data = {
+        "username": "auth_user@test.com",
+        "password": "auth_password123",
+    }
 
-    @pytest.mark.asyncio
-    async def test_login(self, client: AsyncClient):
-        """Test user login"""
-        # When: Logging in with valid credentials
-        login_data = {
-            "username": "user@example.com",
-            "password": "password"
-        }
-        response = await client.post(
-            f"{settings.API_V1_STR}/auth/login",
-            json=login_data
-        )
+    response = await client.post(
+        "/api/v1/auth/login",
+        data=login_data
+    )
 
-        # Then: Login should succeed and return a token
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "access_token" in data
-        assert "token_type" in data
-        assert data["token_type"] == "bearer"
+    assert response.status_code == status.HTTP_200_OK
+    tokens = response.json()
+    assert "access_token" in tokens
+    assert "token_type" in tokens
+    assert tokens["token_type"] == "bearer"
 
-        # When: Logging in with invalid credentials
-        invalid_login = {
-            "username": "user@example.com",
-            "password": "wrongpassword"
-        }
-        response = await client.post(
-            f"{settings.API_V1_STR}/auth/login",
-            json=invalid_login
-        )
 
-        # Then: Login should fail
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+@pytest.mark.asyncio
+async def test_login_wrong_password(client: AsyncClient, create_test_user):
+    """Test login with wrong password"""
+    login_data = {
+        "username": "auth_user@test.com",
+        "password": "wrong_password",
+    }
 
-    @pytest.mark.asyncio
-    async def test_signup(self, client: AsyncClient):
-        """Test user signup"""
-        # When: Registering a new user
-        signup_data = {
-            "email": "newsignup@example.com",
-            "password": "strongpassword123",
-            "full_name": "New Signup User"
-        }
-        response = await client.post(
-            f"{settings.API_V1_STR}/auth/signup",
-            json=signup_data
-        )
+    response = await client.post(
+        "/api/v1/auth/login",
+        data=login_data
+    )
 
-        # Then: Registration should succeed
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["email"] == signup_data["email"]
-        assert data["full_name"] == signup_data["full_name"]
-        assert "id" in data
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-        # When: Registering with an existing email
-        response = await client.post(
-            f"{settings.API_V1_STR}/auth/signup",
-            json=signup_data
-        )
 
-        # Then: Registration should fail
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+@pytest.mark.asyncio
+async def test_login_nonexistent_user(client: AsyncClient):
+    """Test login with nonexistent user"""
+    login_data = {
+        "username": "nonexistent@test.com",
+        "password": "some_password",
+    }
 
-    @pytest.mark.asyncio
-    async def test_password_reset_request(self, client: AsyncClient):
-        """Test password reset request"""
-        # When: Requesting password reset for existing email
-        reset_data = {
-            "email": "user@example.com"
-        }
-        response = await client.post(
-            f"{settings.API_V1_STR}/auth/password-reset",
-            json=reset_data
-        )
+    response = await client.post(
+        "/api/v1/auth/login",
+        data=login_data
+    )
 
-        # Then: Request should be accepted
-        assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    @pytest.mark.asyncio
-    async def test_verify_token(self, client: AsyncClient, normal_user_token_headers: dict):
-        """Test token verification"""
-        # When: Verifying a valid token
-        response = await client.get(
-            f"{settings.API_V1_STR}/auth/verify",
-            headers=normal_user_token_headers
-        )
 
-        # Then: Verification should succeed
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert "email" in data
-        assert "user_id" in data
+@pytest.mark.asyncio
+async def test_register_user(client: AsyncClient):
+    """Test user registration"""
+    register_data = {
+        "email": "new_register@test.com",
+        "password": "register_password123",
+        "full_name": "Newly Registered User"
+    }
 
-        # When: Verifying an invalid token
-        response = await client.get(
-            f"{settings.API_V1_STR}/auth/verify",
-            headers={"Authorization": "Bearer invalid_token"}
-        )
+    response = await client.post(
+        "/api/v1/auth/register",
+        json=register_data
+    )
 
-        # Then: Verification should fail
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_200_OK
+    user = response.json()
+    assert user["email"] == "new_register@test.com"
+    assert user["full_name"] == "Newly Registered User"
+    assert "password" not in user
+
+
+@pytest.mark.asyncio
+async def test_register_existing_user(client: AsyncClient, create_test_user):
+    """Test registration with an existing email"""
+    register_data = {
+        "email": "auth_user@test.com",  # Same as fixture
+        "password": "another_password",
+        "full_name": "Duplicate User"
+    }
+
+    response = await client.post(
+        "/api/v1/auth/register",
+        json=register_data
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.asyncio
+async def test_refresh_token(client: AsyncClient, create_test_user):
+    """Test token refresh functionality"""
+    # First login to get tokens
+    login_data = {
+        "username": "auth_user@test.com",
+        "password": "auth_password123",
+    }
+
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data=login_data
+    )
+
+    tokens = login_response.json()
+    refresh_token = tokens["refresh_token"]
+
+    # Use refresh token to get new access token
+    refresh_data = {
+        "refresh_token": refresh_token
+    }
+
+    response = await client.post(
+        "/api/v1/auth/refresh",
+        json=refresh_data
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    new_tokens = response.json()
+    assert "access_token" in new_tokens
+    assert "refresh_token" in new_tokens
+    assert new_tokens["access_token"] != tokens["access_token"]
+
+
+@pytest.mark.asyncio
+async def test_password_reset_request(client: AsyncClient, create_test_user):
+    """Test password reset request"""
+    reset_data = {
+        "email": "auth_user@test.com"
+    }
+
+    response = await client.post(
+        "/api/v1/auth/password-reset-request",
+        json=reset_data
+    )
+
+    # Should return success even if email doesn't exist (security)
+    assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.asyncio
+async def test_validate_token(client: AsyncClient, create_test_user):
+    """Test token validation endpoint"""
+    # First login to get token
+    login_data = {
+        "username": "auth_user@test.com",
+        "password": "auth_password123",
+    }
+
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data=login_data
+    )
+
+    tokens = login_response.json()
+    access_token = tokens["access_token"]
+
+    # Test the token validation endpoint
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = await client.post(
+        "/api/v1/auth/validate-token",
+        headers=headers
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    result = response.json()
+    assert result["is_valid"] is True
+
+
+@pytest.mark.asyncio
+async def test_logout(client: AsyncClient, create_test_user):
+    """Test user logout functionality"""
+    # First login to get token
+    login_data = {
+        "username": "auth_user@test.com",
+        "password": "auth_password123",
+    }
+
+    login_response = await client.post(
+        "/api/v1/auth/login",
+        data=login_data
+    )
+
+    tokens = login_response.json()
+    access_token = tokens["access_token"]
+
+    # Test logout endpoint
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = await client.post(
+        "/api/v1/auth/logout",
+        headers=headers
+    )
+
+    assert response.status_code == status.HTTP_200_OK

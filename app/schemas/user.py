@@ -39,6 +39,12 @@ class Token(BaseModel):
     token_type: str
 
 
+class UserRegisterResponse(BaseModel):
+    user: User
+    access_token: str
+    token_type: str = "bearer"
+
+
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
     exp: Optional[int] = None

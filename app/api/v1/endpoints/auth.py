@@ -9,8 +9,47 @@ from app import crud, schemas
 from app.api import deps
 from app.core import security
 from app.core.config import settings
+from app.utils.role import get_default_role_id
 
 router = APIRouter()
+
+
+@router.post("/register", response_model=schemas.UserRegisterResponse)
+async def register(
+        user_in: schemas.UserCreate,
+        db: AsyncSession = Depends(deps.get_db_session)
+) -> Any:
+    """
+    Create new user account and return access token
+    """
+    # Check if email already exists
+    user = await crud.user.get_by_email(db, email=user_in.email)
+    if user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+
+    # If role_id not provided, assign default role
+    if not user_in.role_id:
+        default_role_id = await get_default_role_id(db)
+        user_in.role_id = default_role_id
+
+    # Create new user
+    new_user = await crud.user.create(db, obj_in=user_in)
+
+    # Generate access token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        new_user.id, expires_delta=access_token_expires
+    )
+
+    # Return user info and token
+    return {
+        "user": new_user,
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
 @router.post("/login", response_model=schemas.Token)
