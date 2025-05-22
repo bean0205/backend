@@ -1,0 +1,2247 @@
+{
+  "info": {
+    "_postman_id": "f7e43b6c-5e83-4c62-bd6c-e21f1c8a6e45",
+    "name": "William Travel API",
+    "description": "A comprehensive collection of API endpoints for William Travel application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Endpoints for user registration, login and password management",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\",\n    \"full_name\": \"Example User\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Create a new user account and return access token"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "user@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "password123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "OAuth2 compatible token login, get an access token for future requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Password Reset Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/password-reset",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "password-reset"
+              ]
+            },
+            "description": "Request a password reset token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "User management endpoints",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Get current user information"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"full_name\": \"Updated Name\",\n    \"email\": \"updated@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Update current user information"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Current User Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"current_password\": \"oldpassword\",\n    \"new_password\": \"newpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/me/password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "password"
+              ]
+            },
+            "description": "Update current user password"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/?skip=0&limit=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Retrieve all users (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"newuser@example.com\",\n    \"password\": \"password123\",\n    \"full_name\": \"New User\",\n    \"role_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ""
+              ]
+            },
+            "description": "Create a new user (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "1"
+              ]
+            },
+            "description": "Get user by ID (own user or superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"full_name\": \"Updated User Name\",\n    \"is_active\": true,\n    \"role_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "1"
+              ]
+            },
+            "description": "Update a user (superuser only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "description": "Role management endpoints",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles/?skip=0&limit=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Retrieve roles with their permissions (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Editor\",\n    \"description\": \"Can edit content\",\n    \"permissions\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                ""
+              ]
+            },
+            "description": "Create new role with permissions (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "1"
+              ]
+            },
+            "description": "Get role by ID, including its permissions (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Senior Editor\",\n    \"description\": \"Can edit and approve content\",\n    \"permissions\": [1, 2, 3, 4]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "1"
+              ]
+            },
+            "description": "Update a role and its permissions (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/roles/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "roles",
+                "1"
+              ]
+            },
+            "description": "Delete a role (superuser only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "description": "Permission management endpoints",
+      "item": [
+        {
+          "name": "Get All Permissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/?skip=0&limit=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Retrieve permissions (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Edit Articles\",\n    \"code\": \"edit_articles\",\n    \"description\": \"Can edit article content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                ""
+              ]
+            },
+            "description": "Create new permission (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Permission By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                "1"
+              ]
+            },
+            "description": "Get permission by ID (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Permission",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Edit and Publish Articles\",\n    \"description\": \"Can edit and publish article content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                "1"
+              ]
+            },
+            "description": "Update a permission (superuser only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Permission",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/permissions/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "permissions",
+                "1"
+              ]
+            },
+            "description": "Delete a permission (superuser only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Locations",
+      "description": "Location management endpoints",
+      "item": [
+        {
+          "name": "Continents",
+          "description": "Continent management",
+          "item": [
+            {
+              "name": "Get All Continents",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/continents/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "continents",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve continents"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Continent By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/continents/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "continents",
+                    "1"
+                  ]
+                },
+                "description": "Get continent by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Continent",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Africa\",\n    \"code\": \"AF\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/continents/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "continents",
+                    ""
+                  ]
+                },
+                "description": "Create new continent (superuser only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Countries",
+          "description": "Country management",
+          "item": [
+            {
+              "name": "Get All Countries",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/countries/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "countries",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve countries"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Country By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/countries/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "countries",
+                    "1"
+                  ]
+                },
+                "description": "Get country by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Country",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Vietnam\",\n    \"code\": \"VN\",\n    \"continent_id\": 1\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/countries/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "countries",
+                    ""
+                  ]
+                },
+                "description": "Create new country (superuser only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Cities",
+          "description": "City management",
+          "item": [
+            {
+              "name": "Get All Cities",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/cities/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "cities",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve cities"
+              },
+              "response": []
+            },
+            {
+              "name": "Get City By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/cities/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "cities",
+                    "1"
+                  ]
+                },
+                "description": "Get city by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create City",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Hanoi\",\n    \"country_id\": 1,\n    \"description\": \"Capital city of Vietnam\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/locations/cities/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "locations",
+                    "cities",
+                    ""
+                  ]
+                },
+                "description": "Create new city (superuser only)"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Accommodations",
+      "description": "Accommodation management endpoints",
+      "item": [
+        {
+          "name": "Categories",
+          "description": "Accommodation category management",
+          "item": [
+            {
+              "name": "Get All Categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/accommodations/categories/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "accommodations",
+                    "categories",
+                    ""
+                  ]
+                },
+                "description": "Retrieve all active accommodation categories"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Category By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/accommodations/categories/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "accommodations",
+                    "categories",
+                    "1"
+                  ]
+                },
+                "description": "Get accommodation category by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Category",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Hotel\",\n    \"description\": \"Standard hotel accommodations\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/accommodations/categories/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "accommodations",
+                    "categories",
+                    ""
+                  ]
+                },
+                "description": "Create new accommodation category (superuser only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Accommodations",
+          "description": "Accommodation listings",
+          "item": [
+            {
+              "name": "Get All Accommodations",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/accommodations/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "accommodations",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve accommodations with pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Accommodation By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/accommodations/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "accommodations",
+                    "1"
+                  ]
+                },
+                "description": "Get accommodation by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Accommodation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Luxury Hotel\",\n    \"description\": \"A luxury 5-star hotel\",\n    \"address\": \"123 Main Street\",\n    \"city_id\": 1,\n    \"category_id\": 1,\n    \"price_range_min\": 100,\n    \"price_range_max\": 500\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/accommodations/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "accommodations",
+                    ""
+                  ]
+                },
+                "description": "Create new accommodation"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Foods",
+      "description": "Food management endpoints",
+      "item": [
+        {
+          "name": "Categories",
+          "description": "Food category management",
+          "item": [
+            {
+              "name": "Get All Categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/foods/categories/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "foods",
+                    "categories",
+                    ""
+                  ]
+                },
+                "description": "Retrieve all active food categories"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Category By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/foods/categories/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "foods",
+                    "categories",
+                    "1"
+                  ]
+                },
+                "description": "Get food category by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Category",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Vietnamese Cuisine\",\n    \"description\": \"Traditional Vietnamese dishes\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/foods/categories/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "foods",
+                    "categories",
+                    ""
+                  ]
+                },
+                "description": "Create new food category (superuser only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Foods",
+          "description": "Food listings",
+          "item": [
+            {
+              "name": "Get All Foods",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/foods/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "foods",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve foods with pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Food By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/foods/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "foods",
+                    "1"
+                  ]
+                },
+                "description": "Get food by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Food",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Pho\",\n    \"description\": \"Traditional Vietnamese noodle soup\",\n    \"city_id\": 1,\n    \"category_id\": 1,\n    \"price_range_min\": 5,\n    \"price_range_max\": 15\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/foods/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "foods",
+                    ""
+                  ]
+                },
+                "description": "Create new food"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Articles",
+      "description": "Article management endpoints",
+      "item": [
+        {
+          "name": "Categories",
+          "description": "Article category management",
+          "item": [
+            {
+              "name": "Get All Categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/articles/categories/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "articles",
+                    "categories",
+                    ""
+                  ]
+                },
+                "description": "Retrieve all active article categories"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Category By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/articles/categories/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "articles",
+                    "categories",
+                    "1"
+                  ]
+                },
+                "description": "Get article category by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Category",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Travel Tips\",\n    \"description\": \"Articles with travel tips and advice\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/articles/categories/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "articles",
+                    "categories",
+                    ""
+                  ]
+                },
+                "description": "Create new article category (admins and content managers only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Articles",
+          "description": "Article content management",
+          "item": [
+            {
+              "name": "Get All Articles",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/articles/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "articles",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve articles with pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Article By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/articles/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "articles",
+                    "1"
+                  ]
+                },
+                "description": "Get article by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Article",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"10 Must-Visit Places in Vietnam\",\n    \"content\": \"Detailed article content goes here...\",\n    \"category_id\": 1,\n    \"summary\": \"A guide to the best destinations in Vietnam\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/articles/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "articles",
+                    ""
+                  ]
+                },
+                "description": "Create new article (requires appropriate permissions)"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "description": "Event management endpoints",
+      "item": [
+        {
+          "name": "Organizers",
+          "description": "Event organizer management",
+          "item": [
+            {
+              "name": "Get All Organizers",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/events/organizers/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "events",
+                    "organizers",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve organizers created by the current user"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Organizer By ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/events/organizers/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "events",
+                    "organizers",
+                    "1"
+                  ]
+                },
+                "description": "Get organizer by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Organizer",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Vietnam Tourism Association\",\n    \"description\": \"Official tourism organization in Vietnam\",\n    \"contact_email\": \"contact@vta.com\",\n    \"contact_phone\": \"+84123456789\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/events/organizers/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "events",
+                    "organizers",
+                    ""
+                  ]
+                },
+                "description": "Create new organizer"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Events",
+          "description": "Event listings management",
+          "item": [
+            {
+              "name": "Get All Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/events/?skip=0&limit=100",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "events",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "skip",
+                      "value": "0"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Retrieve events with pagination"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Event By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/events/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "events",
+                    "1"
+                  ]
+                },
+                "description": "Get event by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Event",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Hanoi Food Festival\",\n    \"description\": \"Annual food festival featuring Vietnamese cuisine\",\n    \"start_date\": \"2025-06-15T10:00:00\",\n    \"end_date\": \"2025-06-20T18:00:00\",\n    \"city_id\": 1,\n    \"organizer_id\": 1,\n    \"venue\": \"Hanoi Old Quarter\",\n    \"address\": \"Hoan Kiem District, Hanoi\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/events/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "events",
+                    ""
+                  ]
+                },
+                "description": "Create new event"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Community Posts",
+      "description": "Community post management endpoints",
+      "item": [
+        {
+          "name": "Get All Community Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/community-posts/?skip=0&limit=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "community-posts",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Retrieve community posts with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Post By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/community-posts/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "community-posts",
+                "1"
+              ]
+            },
+            "description": "Get specific community post by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Community Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"My Trip to Hanoi\",\n    \"content\": \"I recently visited Hanoi and here's my experience...\",\n    \"city_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/community-posts/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "community-posts",
+                ""
+              ]
+            },
+            "description": "Create new community post"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Community Post",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"My Amazing Trip to Hanoi\",\n    \"content\": \"Updated content about my trip to Hanoi...\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/community-posts/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "community-posts",
+                "1"
+              ]
+            },
+            "description": "Update an existing community post"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Community Post",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/community-posts/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "community-posts",
+                "1"
+              ]
+            },
+            "description": "Delete a community post (owner or admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Media",
+      "description": "Media management endpoints",
+      "item": [
+        {
+          "name": "Types",
+          "description": "Media type management",
+          "item": [
+            {
+              "name": "Get All Media Types",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/media/types/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "media",
+                    "types",
+                    ""
+                  ]
+                },
+                "description": "Retrieve all active media types"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Media Type By ID",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/media/types/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "media",
+                    "types",
+                    "1"
+                  ]
+                },
+                "description": "Get media type by ID"
+              },
+              "response": []
+            },
+            {
+              "name": "Create Media Type",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"name\": \"Image\",\n    \"description\": \"Image files (jpg, png, etc.)\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/media/types/",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "media",
+                    "types",
+                    ""
+                  ]
+                },
+                "description": "Create new media type (superuser only)"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Media",
+          "description": "Media file management",
+          "item": [
+            {
+              "name": "Upload Media",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": "/path/to/image.jpg"
+                    },
+                    {
+                      "key": "type_id",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "reference_id",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "reference_type",
+                      "value": "location",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/media/upload",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "media",
+                    "upload"
+                  ]
+                },
+                "description": "Upload a media file"
+              },
+              "response": []
+            },
+            {
+              "name": "Get Media By Reference",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/media/?reference_id=1&reference_type=location",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "media",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "reference_id",
+                      "value": "1"
+                    },
+                    {
+                      "key": "reference_type",
+                      "value": "location"
+                    }
+                  ]
+                },
+                "description": "Get media files for a specific reference"
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Media",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{access_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/media/1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "media",
+                    "1"
+                  ]
+                },
+                "description": "Delete a media file"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ratings",
+      "description": "Rating management endpoints",
+      "item": [
+        {
+          "name": "Create Rating",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reference_id\": 1,\n    \"reference_type\": \"location\",\n    \"rating_value\": 5,\n    \"comment\": \"Excellent place to visit!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/ratings/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ratings",
+                ""
+              ]
+            },
+            "description": "Create a new rating or update existing"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ratings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ratings/?reference_id=1&reference_type=location&skip=0&limit=100",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ratings",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "reference_id",
+                  "value": "1"
+                },
+                {
+                  "key": "reference_type",
+                  "value": "location"
+                },
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Get ratings for a specific item"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Rating Average",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ratings/average/?reference_id=1&reference_type=location",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ratings",
+                "average",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "reference_id",
+                  "value": "1"
+                },
+                {
+                  "key": "reference_type",
+                  "value": "location"
+                }
+              ]
+            },
+            "description": "Get average rating for a specific item"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Rating",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ratings/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ratings",
+                "1"
+              ]
+            },
+            "description": "Delete a rating (owner or admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Environment Variables",
+      "item": [
+        {
+          "name": "Variables",
+          "item": [],
+          "description": "The following variables should be set in your environment:\n\n- base_url: Your API base URL (e.g., http://localhost:8000)\n- access_token: The JWT token received after login"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ]
+}
+
