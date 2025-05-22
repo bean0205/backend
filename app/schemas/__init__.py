@@ -12,9 +12,21 @@ from app.schemas.base import (
 # User và authentication schemas
 from app.schemas.user import (
     User, UserCreate, UserUpdate, UserInDB,
-    Token, TokenPayload,
+    Token, TokenPayload, UserRegisterResponse,
     PasswordReset, PasswordResetConfirm, PasswordChange,
     PasswordResetToken, PasswordResetTokenCreate
+)
+
+# Permission schemas
+from app.schemas.permission import (
+    Permission, PermissionCreate, PermissionUpdate,
+    PermissionBase
+)
+
+# Role schemas
+from app.schemas.role import (
+    Role, RoleCreate, RoleUpdate,
+    RoleBase
 )
 
 # Location schemas

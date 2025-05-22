@@ -7,7 +7,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, 
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy import func as sql_func
 from geoalchemy2 import Geometry
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign, remote, backref
 
 from app.db.session import Base
 
@@ -287,12 +287,16 @@ class Location(AsyncAttrs, Base):
     district = relationship("District", back_populates="locations")
     ward = relationship("Ward", back_populates="locations")
     category = relationship("LocationCategory", back_populates="locations")
-    ratings = relationship("Rating",
-                           primaryjoin="and_(Rating.reference_id == Location.id, Rating.reference_type == 'location')",
-                           back_populates="location")
-    media = relationship("Media",
-                         primaryjoin="and_(Media.reference_id == Location.id, Media.reference_type == 'location')",
-                         back_populates="location")
+    ratings = relationship(
+        "Rating",
+        primaryjoin="and_(foreign(Rating.reference_id) == Location.id, Rating.reference_type == 'location')",
+        back_populates="location"
+    )
+    media = relationship(
+        "Media",
+        primaryjoin="and_(foreign(Media.reference_id) == Location.id, Media.reference_type == 'location')",
+        back_populates="location"
+    )
 
 
 class AccommodationCategory(AsyncAttrs, Base):
@@ -348,12 +352,16 @@ class Accommodation(AsyncAttrs, Base):
     ward = relationship("Ward", back_populates="accommodations")
     category = relationship("AccommodationCategory", back_populates="accommodations")
     rooms = relationship("AccommodationRoom", back_populates="accommodation")
-    media = relationship("Media",
-                         primaryjoin="and_(Media.reference_id == Accommodation.id, Media.reference_type == 'accommodation')",
-                         back_populates="accommodation")
-    ratings = relationship("Rating",
-                           primaryjoin="and_(Rating.reference_id == Accommodation.id, Rating.reference_type == 'accommodation')",
-                           back_populates="accommodation")
+    media = relationship(
+        "Media",
+        primaryjoin="and_(foreign(Media.reference_id) == Accommodation.id, Media.reference_type == 'accommodation')",
+        back_populates="accommodation"
+    )
+    ratings = relationship(
+        "Rating",
+        primaryjoin="and_(foreign(Rating.reference_id) == Accommodation.id, Rating.reference_type == 'accommodation')",
+        back_populates="accommodation"
+    )
 
 
 class AccommodationRoom(AsyncAttrs, Base):
@@ -397,7 +405,7 @@ class Rating(AsyncAttrs, Base):
                                  primaryjoin="and_(Rating.reference_id == Accommodation.id, Rating.reference_type == 'accommodation')",
                                  back_populates="ratings")
     food = relationship("Food", foreign_keys=[reference_id],
-                        primaryjoin="and_(Rating.reference_id == Food.id, Rating.reference_type == 'food')",
+                        primaryjoin="and_(foreign(Rating.reference_id) == Food.id, Rating.reference_type == 'food')",
                         back_populates="ratings")
 
 
@@ -441,11 +449,16 @@ class Food(AsyncAttrs, Base):
     district = relationship("District", back_populates="foods")
     ward = relationship("Ward", back_populates="foods")
     category = relationship("FoodCategory", back_populates="foods")
-    ratings = relationship("Rating",
-                           primaryjoin="and_(Rating.reference_id == Food.id, Rating.reference_type == 'food')",
-                           back_populates="food")
-    media = relationship("Media", primaryjoin="and_(Media.reference_id == Food.id, Media.reference_type == 'food')",
-                         back_populates="food")
+    ratings = relationship(
+        "Rating",
+        primaryjoin="and_(foreign(Rating.reference_id) == Food.id, Rating.reference_type == 'food')",
+        back_populates="food"
+    )
+    media = relationship(
+        "Media",
+        primaryjoin="and_(foreign(Media.reference_id) == Food.id, Media.reference_type == 'food')",
+        back_populates="food"
+    )
 
 
 class ArticleCategory(AsyncAttrs, Base):
@@ -505,9 +518,11 @@ class Article(AsyncAttrs, Base):
     reactions = relationship("ArticleReaction", back_populates="article")
     categories = relationship("ArticleArticleCategory", back_populates="article")
     tags = relationship("ArticleArticleTag", back_populates="article")
-    media = relationship("Media",
-                         primaryjoin="and_(Media.reference_id == Article.id, Media.reference_type == 'article')",
-                         back_populates="article")
+    media = relationship(
+        "Media",
+        primaryjoin="and_(foreign(Media.reference_id) == Article.id, Media.reference_type == 'article')",
+        back_populates="article"
+    )
 
 
 class ArticleComment(AsyncAttrs, Base):
@@ -586,7 +601,7 @@ class Organizer(AsyncAttrs, Base):
     events = relationship("Event", back_populates="organizer")
     event_sponsors = relationship("EventSponsor", back_populates="organizer")
     media = relationship("Media",
-                         primaryjoin="and_(Media.reference_id == Organizer.id, Media.reference_type == 'organizer')",
+                         primaryjoin="and_(foreign(Media.reference_id) == Organizer.id, Media.reference_type == 'organizer')",
                          back_populates="organizer")
 
 
@@ -640,7 +655,8 @@ class Event(AsyncAttrs, Base):
     ward = relationship("Ward", back_populates="events")
     attendees = relationship("EventAttendee", back_populates="event")
     sponsors = relationship("EventSponsor", back_populates="event")
-    media = relationship("Media", primaryjoin="and_(Media.reference_id == Event.id, Media.reference_type == 'event')",
+    media = relationship("Media",
+                         primaryjoin="and_(foreign(Media.reference_id) == Event.id, Media.reference_type == 'event')",
                          back_populates="event")
 
 
@@ -724,7 +740,7 @@ class CommunityPost(AsyncAttrs, Base):
     reactions = relationship("CommunityPostReaction", back_populates="post")
     tags = relationship("CommunityPostCommunityPostTag", back_populates="post")
     media = relationship("Media",
-                         primaryjoin="and_(Media.reference_id == CommunityPost.id, Media.reference_type == 'community_post')",
+                         primaryjoin="and_(foreign(Media.reference_id) == CommunityPost.id, Media.reference_type == 'community_post')",
                          back_populates="community_post")
 
 
@@ -804,16 +820,16 @@ class Media(AsyncAttrs, Base):
                                  primaryjoin="and_(Media.reference_id == Accommodation.id, Media.reference_type == 'accommodation')",
                                  back_populates="media")
     food = relationship("Food", foreign_keys=[reference_id],
-                        primaryjoin="and_(Media.reference_id == Food.id, Media.reference_type == 'food')",
+                        primaryjoin="and_(foreign(Media.reference_id) == Food.id, Media.reference_type == 'food')",
                         back_populates="media")
     article = relationship("Article", foreign_keys=[reference_id],
-                           primaryjoin="and_(Media.reference_id == Article.id, Media.reference_type == 'article')",
+                           primaryjoin="and_(foreign(Media.reference_id) == Article.id, Media.reference_type == 'article')",
                            back_populates="media")
     organizer = relationship("Organizer", foreign_keys=[reference_id],
-                             primaryjoin="and_(Media.reference_id == Organizer.id, Media.reference_type == 'organizer')",
+                             primaryjoin="and_(foreign(Media.reference_id) == Organizer.id, Media.reference_type == 'organizer')",
                              back_populates="media")
     event = relationship("Event", foreign_keys=[reference_id],
-                         primaryjoin="and_(Media.reference_id == Event.id, Media.reference_type == 'event')",
+                         primaryjoin="and_(foreign(Media.reference_id) == Event.id, Media.reference_type == 'event')",
                          back_populates="media")
     community_post = relationship("CommunityPost", foreign_keys=[reference_id],
                                   primaryjoin="and_(Media.reference_id == CommunityPost.id, Media.reference_type == 'community_post')",

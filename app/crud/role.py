@@ -96,4 +96,5 @@ class CRUDRole(CRUDBase[Role, RoleCreate, RoleUpdate]):
         return db_obj
 
 
+# Create an instance of CRUDRole
 role = CRUDRole(Role)

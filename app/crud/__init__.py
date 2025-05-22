@@ -6,6 +6,10 @@ from app.crud.base import CRUDBase
 # User CRUD
 from app.crud.user import CRUDUser, user
 
+# Permission and Role CRUD
+from app.crud.permission import CRUDPermission, permission
+from app.crud.role import CRUDRole, role
+
 # Location CRUD
 from app.crud.location import (
     CRUDContinent, continent,
