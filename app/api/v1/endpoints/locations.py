@@ -2,35 +2,73 @@ from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 
 from app import crud, schemas
 from app.api import deps
 from app.schemas.base import PaginationParams
+from app.db.models import Continent, Country, Region, District, Ward, LocationCategory
 
 router = APIRouter()
 
 
 # Continent endpoints
-@router.get("/continents/", response_model=List[schemas.Continent])
+@router.get("/continents/", response_model=schemas.PaginatedResponse)
 async def get_continents(
         db: AsyncSession = Depends(deps.get_db_session),
-        skip: int = 0,
-        limit: int = 100,
+        page: int = Query(1, ge=1, description="Page number"),
+        limit: int = Query(10, ge=1, le=100, description="Items per page"),
+        all: bool = False,
 ) -> Any:
     """
-    Retrieve continents.
+    Retrieve continents with pagination.
+    Set all=true to retrieve all items without pagination.
     """
-    continents = await crud.continent.get_all_active(db)
-    return continents
+    if all:
+        continents_db = await crud.continent.get_all_active(db)
+        # Convert SQLAlchemy models to Pydantic schemas
+        continents = [schemas.Continent.model_validate(continent) for continent in continents_db]
+        return {
+            "items": continents,
+            "total": len(continents),
+            "page": 1,
+            "limit": len(continents),
+            "pages": 1
+        }
+
+    skip = (page - 1) * limit
+
+    # Get total count
+    total_count_query = select(func.count(Continent.id)).where(Continent.status == 1)
+    total_count_result = await db.execute(total_count_query)
+    total_count = total_count_result.scalar() or 0
+
+    # Get paginated items
+    query = select(Continent).filter(Continent.status == 1).offset(skip).limit(limit)
+    result = await db.execute(query)
+    continents_db = result.scalars().all()
+    # Convert SQLAlchemy models to Pydantic schemas
+    continents = [schemas.Continent.model_validate(continent) for continent in continents_db]
+
+    # Calculate total pages
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
+    return {
+        "items": continents,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 
-@router.get("/continents/{continent_id}", response_model=schemas.Continent)
+@router.get("/continents/{continent_id}", response_model=schemas.ContinentWithCountries)
 async def get_continent(
         continent_id: int,
         db: AsyncSession = Depends(deps.get_db_session),
 ) -> Any:
     """
-    Get continent by ID.
+    Get continent by ID with its list of countries.
     """
     continent = await crud.continent.get(db, id=continent_id)
     if not continent:
@@ -38,7 +76,17 @@ async def get_continent(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Continent not found",
         )
-    return continent
+
+    # Get countries belonging to this continent
+    countries = await crud.country.get_by_continent(db, continent_id=continent_id)
+
+    # Create response with continent data and countries
+    response = schemas.ContinentWithCountries(
+        **continent.__dict__,
+        countries=countries
+    )
+
+    return response
 
 
 @router.post("/continents/", response_model=schemas.Continent)
@@ -77,21 +125,75 @@ async def update_continent(
 
 
 # Country endpoints
-@router.get("/countries/", response_model=List[schemas.Country])
+@router.get("/countries/", response_model=schemas.PaginatedResponse)
 async def get_countries(
         db: AsyncSession = Depends(deps.get_db_session),
-        skip: int = 0,
-        limit: int = 100,
+        page: int = Query(1, ge=1, description="Page number"),
+        limit: int = Query(10, ge=1, le=100, description="Items per page"),
         continent_id: Optional[int] = None,
+        all: bool = False,
 ) -> Any:
     """
-    Retrieve countries. Filter by continent if provided.
+    Retrieve countries with pagination. Filter by continent if provided.
+    Set all=true to retrieve all items without pagination.
     """
+    if all:
+        if continent_id:
+            countries_db = await crud.country.get_by_continent(db, continent_id=continent_id)
+        else:
+            # Get all countries
+            result = await db.execute(select(Country).filter(Country.status == 1))
+            countries_db = result.scalars().all()
+
+        # Convert SQLAlchemy models to Pydantic schemas
+        countries = [schemas.Country.model_validate(country) for country in countries_db]
+
+        return {
+            "items": countries,
+            "total": len(countries),
+            "page": 1,
+            "limit": len(countries),
+            "pages": 1
+        }
+
+    skip = (page - 1) * limit
+
+    # Get total count based on filters
+    count_query = select(func.count(Country.id)).where(Country.status == 1)
     if continent_id:
-        countries = await crud.country.get_by_continent(db, continent_id=continent_id)
+        count_query = count_query.filter(Country.continent_id == continent_id)
+
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar() or 0
+
+    # Get paginated items
+    if continent_id:
+        # This is a simplified approach - for large datasets,
+        # we should modify get_by_continent to accept skip/limit
+        result = await db.execute(
+            select(Country)
+            .filter(Country.continent_id == continent_id)
+            .filter(Country.status == 1)
+            .offset(skip).limit(limit)
+        )
+        countries_db = result.scalars().all()
+        # Convert SQLAlchemy models to Pydantic schemas
+        countries = [schemas.Country.model_validate(country) for country in countries_db]
     else:
-        countries = await crud.country.get_multi(db, skip=skip, limit=limit)
-    return countries
+        countries_db = await crud.country.get_multi(db, skip=skip, limit=limit)
+        # Convert SQLAlchemy models to Pydantic schemas
+        countries = [schemas.Country.model_validate(country) for country in countries_db]
+
+    # Calculate total pages
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
+    return {
+        "items": countries,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 
 @router.get("/countries/{country_id}", response_model=schemas.Country)
@@ -147,91 +249,141 @@ async def update_country(
 
 
 # Region endpoints
-@router.get("/regions/", response_model=List[schemas.Region])
+@router.get("/regions/", response_model=schemas.PaginatedResponse)
 async def get_regions(
         db: AsyncSession = Depends(deps.get_db_session),
-        skip: int = 0,
-        limit: int = 100,
+        page: int = Query(1, ge=1, description="Page number"),
+        limit: int = Query(10, ge=1, le=100, description="Items per page"),
         country_id: Optional[int] = None,
+        all: bool = False,
 ) -> Any:
     """
-    Retrieve regions. Filter by country if provided.
+    Retrieve regions with pagination. Filter by country if provided.
+    Set all=true to retrieve all items without pagination.
     """
+    if all:
+        if country_id:
+            regions_db = await crud.region.get_by_country(db, country_id=country_id)
+        else:
+            # Get all regions
+            result = await db.execute(select(Region).filter(Region.status == 1))
+            regions_db = result.scalars().all()
+
+        # Convert SQLAlchemy models to Pydantic schemas
+        regions = [schemas.Region.model_validate(region) for region in regions_db]
+
+        return {
+            "items": regions,
+            "total": len(regions),
+            "page": 1,
+            "limit": len(regions),
+            "pages": 1
+        }
+
+    skip = (page - 1) * limit
+
+    # Get total count based on filters
+    count_query = select(func.count(Region.id)).where(Region.status == 1)
     if country_id:
-        regions = await crud.region.get_by_country(db, country_id=country_id)
+        count_query = count_query.filter(Region.country_id == country_id)
+
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar() or 0
+
+    # Get paginated items
+    if country_id:
+        result = await db.execute(
+            select(Region)
+            .filter(Region.country_id == country_id)
+            .filter(Region.status == 1)
+            .offset(skip).limit(limit)
+        )
+        regions_db = result.scalars().all()
     else:
-        regions = await crud.region.get_multi(db, skip=skip, limit=limit)
-    return regions
+        regions_db = await crud.region.get_multi(db, skip=skip, limit=limit)
+
+    # Convert SQLAlchemy models to Pydantic schemas
+    regions = [schemas.Region.model_validate(region) for region in regions_db]
+
+    # Calculate total pages
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
+    return {
+        "items": regions,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 
-@router.get("/regions/{region_id}", response_model=schemas.Region)
-async def get_region(
-        region_id: int,
-        db: AsyncSession = Depends(deps.get_db_session),
-) -> Any:
-    """
-    Get region by ID.
-    """
-    region = await crud.region.get(db, id=region_id)
-    if not region:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Region not found",
-        )
-    return region
-
-
-@router.post("/regions/", response_model=schemas.Region)
-async def create_region(
-        *,
-        db: AsyncSession = Depends(deps.get_db_session),
-        region_in: schemas.RegionCreate,
-        current_user: schemas.User = Depends(deps.get_current_active_superuser),
-) -> Any:
-    """
-    Create new region. Only for superusers.
-    """
-    region = await crud.region.create(db, obj_in=region_in)
-    return region
-
-
-@router.put("/regions/{region_id}", response_model=schemas.Region)
-async def update_region(
-        *,
-        db: AsyncSession = Depends(deps.get_db_session),
-        region_id: int,
-        region_in: schemas.RegionUpdate,
-        current_user: schemas.User = Depends(deps.get_current_active_superuser),
-) -> Any:
-    """
-    Update a region. Only for superusers.
-    """
-    region = await crud.region.get(db, id=region_id)
-    if not region:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Region not found",
-        )
-    region = await crud.region.update(db, db_obj=region, obj_in=region_in)
-    return region
-
-
-# District endpoints - similar pattern to above
-@router.get("/districts/", response_model=List[schemas.District])
+# District endpoints
+@router.get("/districts/", response_model=schemas.PaginatedResponse)
 async def get_districts(
         db: AsyncSession = Depends(deps.get_db_session),
-        skip: int = 0,
-        limit: int = 100,
+        page: int = Query(1, ge=1, description="Page number"),
+        limit: int = Query(10, ge=1, le=100, description="Items per page"),
         region_id: Optional[int] = None,
+        all: bool = False,
 ) -> Any:
     """
-    Retrieve districts. Filter by region if provided.
+    Retrieve districts with pagination. Filter by region if provided.
+    Set all=true to retrieve all items without pagination.
     """
+    if all:
+        if region_id:
+            districts_db = await crud.district.get_by_region(db, region_id=region_id)
+        else:
+            # Get all districts
+            result = await db.execute(select(District).filter(District.status == 1))
+            districts_db = result.scalars().all()
+
+        # Convert SQLAlchemy models to Pydantic schemas
+        districts = [schemas.District.model_validate(district) for district in districts_db]
+
+        return {
+            "items": districts,
+            "total": len(districts),
+            "page": 1,
+            "limit": len(districts),
+            "pages": 1
+        }
+
+    skip = (page - 1) * limit
+
+    # Get total count based on filters
+    count_query = select(func.count(District.id)).where(District.status == 1)
     if region_id:
-        districts = await crud.district.get_by_region(db, region_id=region_id)
+        count_query = count_query.filter(District.region_id == region_id)
+
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar() or 0
+
+    # Get paginated items
+    if region_id:
+        result = await db.execute(
+            select(District)
+            .filter(District.region_id == region_id)
+            .filter(District.status == 1)
+            .offset(skip).limit(limit)
+        )
+        districts_db = result.scalars().all()
     else:
-        districts = await crud.district.get_multi(db, skip=skip, limit=limit)
-    return districts
+        districts_db = await crud.district.get_multi(db, skip=skip, limit=limit)
+
+    # Convert SQLAlchemy models to Pydantic schemas
+    districts = [schemas.District.model_validate(district) for district in districts_db]
+
+    # Calculate total pages
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
+    return {
+        "items": districts,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 
 @router.get("/districts/{district_id}", response_model=schemas.District)
@@ -251,22 +403,73 @@ async def get_district(
     return district
 
 
-# Ward endpoints - similar pattern
-@router.get("/wards/", response_model=List[schemas.Ward])
+# Ward endpoints
+@router.get("/wards/", response_model=schemas.PaginatedResponse)
 async def get_wards(
         db: AsyncSession = Depends(deps.get_db_session),
-        skip: int = 0,
-        limit: int = 100,
+        page: int = Query(1, ge=1, description="Page number"),
+        limit: int = Query(10, ge=1, le=100, description="Items per page"),
         district_id: Optional[int] = None,
+        all: bool = False,
 ) -> Any:
     """
-    Retrieve wards. Filter by district if provided.
+    Retrieve wards with pagination. Filter by district if provided.
+    Set all=true to retrieve all items without pagination.
     """
+    if all:
+        if district_id:
+            wards_db = await crud.ward.get_by_district(db, district_id=district_id)
+        else:
+            # Get all wards
+            result = await db.execute(select(Ward).filter(Ward.status == 1))
+            wards_db = result.scalars().all()
+
+        # Convert SQLAlchemy models to Pydantic schemas
+        wards = [schemas.Ward.model_validate(ward) for ward in wards_db]
+
+        return {
+            "items": wards,
+            "total": len(wards),
+            "page": 1,
+            "limit": len(wards),
+            "pages": 1
+        }
+
+    skip = (page - 1) * limit
+
+    # Get total count based on filters
+    count_query = select(func.count(Ward.id)).where(Ward.status == 1)
     if district_id:
-        wards = await crud.ward.get_by_district(db, district_id=district_id)
+        count_query = count_query.filter(Ward.district_id == district_id)
+
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar() or 0
+
+    # Get paginated items
+    if district_id:
+        result = await db.execute(
+            select(Ward)
+            .filter(Ward.district_id == district_id)
+            .filter(Ward.status == 1)
+            .offset(skip).limit(limit)
+        )
+        wards_db = result.scalars().all()
     else:
-        wards = await crud.ward.get_multi(db, skip=skip, limit=limit)
-    return wards
+        wards_db = await crud.ward.get_multi(db, skip=skip, limit=limit)
+
+    # Convert SQLAlchemy models to Pydantic schemas
+    wards = [schemas.Ward.model_validate(ward) for ward in wards_db]
+
+    # Calculate total pages
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
+    return {
+        "items": wards,
+        "total": total_count,
+        "page": page,
+        "limit": limit,
+        "pages": total_pages
+    }
 
 
 @router.get("/wards/{ward_id}", response_model=schemas.Ward)
@@ -287,135 +490,50 @@ async def get_ward(
 
 
 # Location Category endpoints
-@router.get("/location-categories/", response_model=List[schemas.LocationCategory])
+@router.get("/location-categories/", response_model=schemas.PaginatedResponse)
 async def get_location_categories(
-        db: AsyncSession = Depends(deps.get_db_session),
-) -> Any:
-    """
-    Retrieve all active location categories.
-    """
-    categories = await crud.location_category.get_all_active(db)
-    return categories
-
-
-@router.get("/location-categories/{category_id}", response_model=schemas.LocationCategory)
-async def get_location_category(
-        category_id: int,
-        db: AsyncSession = Depends(deps.get_db_session),
-) -> Any:
-    """
-    Get location category by ID.
-    """
-    category = await crud.location_category.get(db, id=category_id)
-    if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Location category not found",
-        )
-    return category
-
-
-@router.post("/location-categories/", response_model=schemas.LocationCategory)
-async def create_location_category(
-        *,
-        db: AsyncSession = Depends(deps.get_db_session),
-        category_in: schemas.LocationCategoryCreate,
-        current_user: schemas.User = Depends(deps.get_current_active_superuser),
-) -> Any:
-    """
-    Create new location category. Only for superusers.
-    """
-    category = await crud.location_category.create(db, obj_in=category_in)
-    return category
-
-
-# Location endpoints
-@router.get("/locations/", response_model=dict)
-async def get_locations(
         db: AsyncSession = Depends(deps.get_db_session),
         page: int = Query(1, ge=1, description="Page number"),
         limit: int = Query(10, ge=1, le=100, description="Items per page"),
-        search: Optional[str] = None,
-        country_id: Optional[int] = None,
-        region_id: Optional[int] = None,
-        district_id: Optional[int] = None,
-        category_id: Optional[int] = None,
+        all: bool = False,
 ) -> Any:
     """
-    Search and retrieve locations with pagination and filters.
+    Retrieve location categories with pagination.
+    Set all=true to retrieve all items without pagination.
     """
-    pagination_params = PaginationParams(page=page, limit=limit)
+    if all:
+        categories_db = await crud.location_category.get_all_active(db)
+        # Convert SQLAlchemy models to Pydantic schemas
+        categories = [schemas.LocationCategory.model_validate(category) for category in categories_db]
+        return {
+            "items": categories,
+            "total": len(categories),
+            "page": 1,
+            "limit": len(categories),
+            "pages": 1
+        }
 
-    locations = await crud.location.search_locations(
-        db,
-        search_term=search,
-        country_id=country_id,
-        region_id=region_id,
-        district_id=district_id,
-        category_id=category_id,
-        skip=(page - 1) * limit,
-        limit=limit
-    )
+    skip = (page - 1) * limit
 
-    # Get total count for pagination info
-    # This is a simplified version - in a real app, you would also count with the filters
-    # and calculate total pages
+    # Get total count
+    count_query = select(func.count(LocationCategory.id)).where(LocationCategory.status == True)
+    total_count_result = await db.execute(count_query)
+    total_count = total_count_result.scalar() or 0
+
+    # Get paginated items
+    query = select(LocationCategory).filter(LocationCategory.status == True).offset(skip).limit(limit)
+    result = await db.execute(query)
+    categories_db = result.scalars().all()
+    # Convert SQLAlchemy models to Pydantic schemas
+    categories = [schemas.LocationCategory.model_validate(category) for category in categories_db]
+
+    # Calculate total pages
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 0
+
     return {
-        "items": locations,
-        "total": len(locations),
+        "items": categories,
+        "total": total_count,
         "page": page,
         "limit": limit,
-        "pages": (len(locations) + limit - 1) // limit
+        "pages": total_pages
     }
-
-
-@router.get("/locations/{location_id}", response_model=schemas.Location)
-async def get_location(
-        location_id: int,
-        db: AsyncSession = Depends(deps.get_db_session),
-) -> Any:
-    """
-    Get location by ID.
-    """
-    location = await crud.location.get(db, id=location_id)
-    if not location:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Location not found",
-        )
-    return location
-
-
-@router.post("/locations/", response_model=schemas.Location)
-async def create_location(
-        *,
-        db: AsyncSession = Depends(deps.get_db_session),
-        location_in: schemas.LocationCreate,
-        current_user: schemas.User = Depends(deps.get_current_active_superuser),
-) -> Any:
-    """
-    Create new location. Only for superusers.
-    """
-    location = await crud.location.create(db, obj_in=location_in)
-    return location
-
-
-@router.put("/locations/{location_id}", response_model=schemas.Location)
-async def update_location(
-        *,
-        db: AsyncSession = Depends(deps.get_db_session),
-        location_id: int,
-        location_in: schemas.LocationUpdate,
-        current_user: schemas.User = Depends(deps.get_current_active_superuser),
-) -> Any:
-    """
-    Update a location. Only for superusers.
-    """
-    location = await crud.location.get(db, id=location_id)
-    if not location:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Location not found",
-        )
-    location = await crud.location.update(db, db_obj=location, obj_in=location_in)
-    return location

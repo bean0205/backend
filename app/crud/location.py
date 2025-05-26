@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.crud.base import CRUDBase
@@ -105,6 +105,39 @@ class CRUDLocation(CRUDBase[Location, LocationCreate, LocationUpdate]):
             .limit(limit)
         )
         return result.scalars().all()
+
+    async def count_locations(
+            self,
+            db: AsyncSession,
+            *,
+            search_term: str = None,
+            country_id: int = None,
+            region_id: int = None,
+            district_id: int = None,
+            category_id: int = None
+    ) -> int:
+        """
+        Count total locations based on filter criteria
+        """
+        query = select(func.count(Location.id)).where(Location.is_active == True)
+
+        if search_term:
+            query = query.filter(Location.name.ilike(f"%{search_term}%"))
+
+        if country_id:
+            query = query.filter(Location.country_id == country_id)
+
+        if region_id:
+            query = query.filter(Location.region_id == region_id)
+
+        if district_id:
+            query = query.filter(Location.district_id == district_id)
+
+        if category_id:
+            query = query.filter(Location.category_id == category_id)
+
+        result = await db.execute(query)
+        return result.scalar()
 
     async def search_locations(
             self,

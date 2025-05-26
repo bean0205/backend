@@ -32,6 +32,7 @@ from app.schemas.role import (
 # Location schemas
 from app.schemas.location import (
     Continent, ContinentCreate, ContinentUpdate,
+    ContinentWithCountries,
     Country, CountryCreate, CountryUpdate,
     Region, RegionCreate, RegionUpdate,
     District, DistrictCreate, DistrictUpdate,

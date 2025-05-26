@@ -36,6 +36,10 @@ class Continent(ContinentBase, DateMixin, BaseSchema):
     id: int
 
 
+class ContinentWithCountries(Continent):
+    countries: List["Country"] = []
+
+
 class CountryBase(BaseModel):
     name: str
     code: str
@@ -232,3 +236,8 @@ class LocationUpdate(BaseModel):
 class Location(LocationBase, TimestampMixin, BaseSchema):
     id: int
     popularity_score: float = 0
+    country: Optional[Country] = None
+    region: Optional[Region] = None
+    district: Optional[District] = None
+    ward: Optional[Ward] = None
+    category: Optional[LocationCategory] = None
