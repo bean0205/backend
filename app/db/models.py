@@ -109,6 +109,24 @@ class Continent(AsyncAttrs, Base):
 
     # Relationships
     countries = relationship("Country", back_populates="continent")
+    continent_themes = relationship("ContinentTheme", back_populates="continent", cascade="all, delete-orphan")
+
+class ContinentTheme(AsyncAttrs, Base):
+    __tablename__ = "continent_theme"
+
+    id = Column(Integer, primary_key=True, index=True)
+    continent_id = Column(Integer, ForeignKey("continents.id"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    name_code = Column(String(100))
+    description = Column(Text)
+    description_code = Column(Text)
+    background_image = Column(String(255))
+    logo = Column(String(255))
+    status = Column(Integer, default=1, nullable=False)
+    created_date = Column(Date, default=datetime.utcnow().date(), nullable=False)
+    updated_date = Column(Date)
+    # Relationships
+    continent = relationship("Continent", back_populates="continent_themes")
 
 
 class Country(AsyncAttrs, Base):
@@ -136,6 +154,28 @@ class Country(AsyncAttrs, Base):
     articles = relationship("Article", back_populates="country")
     events = relationship("Event", back_populates="country")
 
+    #country theme
+    country_themes = relationship("CountryTheme", back_populates="country")
+
+class CountryTheme(AsyncAttrs, Base):
+    __tablename__ = "country_theme"
+
+    id = Column(Integer, primary_key=True, index=True)
+    country_id = Column(Integer, ForeignKey("countries.id"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    name_code = Column(String(100))
+    description = Column(Text)
+    description_code = Column(Text)
+    slider_image = Column(Text)
+    slider_image_description = Column(Text)
+    slider_image_code = Column(Text)
+    background_image = Column(Text)
+    logo = Column(Text)
+    status = Column(Integer, default=1, nullable=False)
+    created_date = Column(Date, default=datetime.utcnow().date(), nullable=False)
+    updated_date = Column(Date)
+    # Relationships
+    country = relationship("Country", back_populates="country_themes")
 
 class Region(AsyncAttrs, Base):
     __tablename__ = "regions"
